@@ -1,0 +1,154 @@
+// Seed data for the V60 Vault.
+// To add a new bean, push another object onto this array — that's it.
+// Required shape:
+//   id, name, origin, flag, variety, elevation, processing,
+//   roastLevel, description,
+//   brew: { waterTemp, totalTime, ratio, pours: [{ label, volume, notes }] },
+//   rating (default 0), comments: []
+
+export const beans = [
+  {
+    id: 'ethiopia-yirgacheffe',
+    name: 'Yirgacheffe Konga',
+    origin: 'Ethiopia',
+    flag: '🇪🇹',
+    variety: 'Heirloom',
+    elevation: '1,950–2,200 m',
+    processing: 'Washed',
+    roastLevel: 'Light',
+    description:
+      'A bright, jasmine-forward cup with stone-fruit acidity and a clean, tea-like finish. The classic Yirgacheffe profile, drawn out with a slow, gentle pour.',
+    brew: {
+      waterTemp: '94°C',
+      totalTime: '2:45',
+      ratio: '1:16 (15g : 240g)',
+      pours: [
+        {
+          label: 'Bloom',
+          volume: '45 ml',
+          notes: 'Pour in tight spirals, then swirl the dripper. Wait 40s — you should smell bergamot lift off.',
+        },
+        {
+          label: 'Pour 1',
+          volume: '95 ml (to 140 g)',
+          notes: 'Slow center pour, build the bed evenly. This is where the florals open up.',
+        },
+        {
+          label: 'Pour 2',
+          volume: '100 ml (to 240 g)',
+          notes: 'Steady spiral to the edge. Drawdown should finish around 2:45 with a flat bed.',
+        },
+      ],
+    },
+    rating: 0,
+    comments: [],
+  },
+  {
+    id: 'colombia-huila',
+    name: 'Huila La Esperanza',
+    origin: 'Colombia',
+    flag: '🇨🇴',
+    variety: 'Caturra · Castillo',
+    elevation: '1,750 m',
+    processing: 'Washed',
+    roastLevel: 'Medium-Light',
+    description:
+      'Round and syrupy with red apple, brown sugar, and cocoa nib. A reliable everyday pour-over that rewards a slightly cooler, more patient brew.',
+    brew: {
+      waterTemp: '92°C',
+      totalTime: '3:15',
+      ratio: '1:16.5 (15g : 250g)',
+      pours: [
+        {
+          label: 'Bloom',
+          volume: '45 ml',
+          notes: 'Saturate fully and swirl. Rest 45s — degassing builds the syrupy body.',
+        },
+        {
+          label: 'Pour 1',
+          volume: '105 ml (to 150 g)',
+          notes: 'Center pour, gentle pulses. Keep the slurry on the higher side of the dripper.',
+        },
+        {
+          label: 'Pour 2',
+          volume: '100 ml (to 250 g)',
+          notes: 'Slow spiral, then a tiny swirl at the end to flatten the bed. Drawdown ~3:15.',
+        },
+      ],
+    },
+    rating: 0,
+    comments: [],
+  },
+  {
+    id: 'kenya-aa-nyeri',
+    name: 'Nyeri AA Gichathaini',
+    origin: 'Kenya',
+    flag: '🇰🇪',
+    variety: 'SL28 · SL34',
+    elevation: '1,800 m',
+    processing: 'Washed',
+    roastLevel: 'Light',
+    description:
+      'Punchy blackcurrant, tomato vine, and grapefruit. High-toned acidity with a juicy, almost wine-like body. Demands clean, hot water and a confident pour.',
+    brew: {
+      waterTemp: '95°C',
+      totalTime: '3:00',
+      ratio: '1:15 (15g : 225g)',
+      pours: [
+        {
+          label: 'Bloom',
+          volume: '45 ml',
+          notes: 'Big bloom with a hard swirl. Rest 35s — you want the CO₂ out before the first pour.',
+        },
+        {
+          label: 'Pour 1',
+          volume: '90 ml (to 135 g)',
+          notes: 'Confident center pour to wake up the acidity. Don’t baby it.',
+        },
+        {
+          label: 'Pour 2',
+          volume: '90 ml (to 225 g)',
+          notes: 'Spiral out, finish with a swirl. Aim for a 3:00 drawdown — past 3:30 it goes flat.',
+        },
+      ],
+    },
+    rating: 0,
+    comments: [],
+  },
+  {
+    id: 'guatemala-antigua',
+    name: 'Antigua Finca El Pulcal',
+    origin: 'Guatemala',
+    flag: '🇬🇹',
+    variety: 'Bourbon',
+    elevation: '1,650 m',
+    processing: 'Washed',
+    roastLevel: 'Medium',
+    description:
+      'Dark chocolate, toasted almond, and dried cherry. Velvety body with a long, cocoa-dusted finish. The cup that proves medium roast still belongs on the V60.',
+    brew: {
+      waterTemp: '93°C',
+      totalTime: '3:30',
+      ratio: '1:16 (15g : 240g)',
+      pours: [
+        {
+          label: 'Bloom',
+          volume: '40 ml',
+          notes: 'Gentle saturation, swirl once. Rest 45s — medium roasts need the time.',
+        },
+        {
+          label: 'Pour 1',
+          volume: '100 ml (to 140 g)',
+          notes: 'Slow, low pour from the center. Keep agitation minimal to protect the body.',
+        },
+        {
+          label: 'Pour 2',
+          volume: '100 ml (to 240 g)',
+          notes: 'Wide spiral, no swirl at the end. Drawdown should land around 3:30.',
+        },
+      ],
+    },
+    rating: 0,
+    comments: [],
+  },
+]

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/v60.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#FAF7F2" />
+    <title>The V60 Vault — Pour-over Recipe Journal</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              cream: '#FAF7F2',
+              oatmeal: '#E8E0D5',
+              lightbrown: '#C4A882',
+              espresso: '#3D2B1F',
+              gold: '#B8966E',
+            },
+            fontFamily: {
+              display: ['"Playfair Display"', 'serif'],
+              sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+            },
+            borderRadius: {
+              card: '14px',
+            },
+            boxShadow: {
+              card: '0 1px 2px rgba(61, 43, 31, 0.04), 0 8px 24px rgba(61, 43, 31, 0.06)',
+              cardHover: '0 4px 8px rgba(61, 43, 31, 0.06), 0 18px 40px rgba(61, 43, 31, 0.12)',
+            },
+          },
+        },
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

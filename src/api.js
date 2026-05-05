@@ -1,56 +1,186 @@
-// Thin fetch() wrapper around the json-server backend.
-// Run alongside Vite with: npm run server  (port 3001)
+// Thin Supabase wrapper.
+// Components see camelCase fields (beanId, userId, userName, createdAt,
+// roastLevel) — the column names in Supabase are snake_case, so this file
+// maps both ways. Function names and signatures match the original API
+// so the rest of the app is untouched.
 
-const BASE = 'http://localhost:3001'
+import { supabase } from './supabaseClient.js'
+import { beans as seedBeansData } from './data/beans.js'
 
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new Error(`API ${res.status} ${res.statusText} — ${path} ${body}`)
-  }
-  // DELETE typically returns {}
-  if (res.status === 204) return null
-  return res.json()
+// ---------- Generic helpers ----------
+const unwrap = ({ data, error }) => {
+  if (error) throw error
+  return data
 }
+
+const renameKeys = (obj, map) => {
+  if (obj == null) return obj
+  const out = {}
+  for (const [k, v] of Object.entries(obj)) {
+    out[map[k] ?? k] = v
+  }
+  return out
+}
+
+const mapMany = (rows, mapper) =>
+  Array.isArray(rows) ? rows.map(mapper) : rows
+
+// ---------- Field-name maps (camelCase ↔ snake_case) ----------
+// Note: keys nested inside the `brew` jsonb column (waterTemp, totalTime,
+// ratio, pours[].label/volume/notes) are JSON values, not Postgres columns,
+// so they keep their original camelCase casing in the database.
+const BEAN_TO_DB = { roastLevel: 'roast_level' }
+const BEAN_FROM_DB = { roast_level: 'roastLevel' }
+
+const RATING_TO_DB = { beanId: 'bean_id', userId: 'user_id' }
+const RATING_FROM_DB = { bean_id: 'beanId', user_id: 'userId' }
+
+const COMMENT_TO_DB = {
+  beanId: 'bean_id',
+  userId: 'user_id',
+  userName: 'user_name',
+  createdAt: 'created_at',
+}
+const COMMENT_FROM_DB = {
+  bean_id: 'beanId',
+  user_id: 'userId',
+  user_name: 'userName',
+  created_at: 'createdAt',
+}
+
+const beanToDb = (b) => renameKeys(b, BEAN_TO_DB)
+const beanFromDb = (r) => renameKeys(r, BEAN_FROM_DB)
+const ratingToDb = (r) => renameKeys(r, RATING_TO_DB)
+const ratingFromDb = (r) => renameKeys(r, RATING_FROM_DB)
+const commentToDb = (c) => renameKeys(c, COMMENT_TO_DB)
+const commentFromDb = (r) => renameKeys(r, COMMENT_FROM_DB)
 
 // ---------- Beans ----------
-export const getBeans = () => request('/beans')
-export const getBean = (id) => request(`/beans/${id}`)
-export const addBean = (bean) =>
-  request('/beans', { method: 'POST', body: JSON.stringify(bean) })
-export const updateBean = (id, bean) =>
-  request(`/beans/${id}`, { method: 'PUT', body: JSON.stringify(bean) })
-export const deleteBean = (id) =>
-  request(`/beans/${id}`, { method: 'DELETE' })
+export const getBeans = async () => {
+  const rows = unwrap(await supabase.from('beans').select('*'))
+  return mapMany(rows, beanFromDb)
+}
+
+export const getBean = async (id) => {
+  const row = unwrap(
+    await supabase.from('beans').select('*').eq('id', id).maybeSingle(),
+  )
+  return beanFromDb(row)
+}
+
+export const addBean = async (bean) => {
+  const row = unwrap(
+    await supabase.from('beans').insert(beanToDb(bean)).select().single(),
+  )
+  return beanFromDb(row)
+}
+
+export const updateBean = async (id, bean) => {
+  const row = unwrap(
+    await supabase
+      .from('beans')
+      .update(beanToDb(bean))
+      .eq('id', id)
+      .select()
+      .single(),
+  )
+  return beanFromDb(row)
+}
+
+export const deleteBean = async (id) =>
+  unwrap(await supabase.from('beans').delete().eq('id', id))
 
 // ---------- Comments ----------
-export const getComments = (beanId) =>
-  request(beanId ? `/comments?beanId=${encodeURIComponent(beanId)}&_sort=createdAt&_order=desc` : '/comments?_sort=createdAt&_order=desc')
-export const addComment = (comment) =>
-  request('/comments', { method: 'POST', body: JSON.stringify(comment) })
-export const deleteComment = (id) =>
-  request(`/comments/${id}`, { method: 'DELETE' })
+export const getComments = async (beanId) => {
+  let q = supabase
+    .from('comments')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (beanId !== undefined) q = q.eq('bean_id', beanId)
+  const rows = unwrap(await q)
+  return mapMany(rows, commentFromDb)
+}
+
+export const addComment = async (comment) => {
+  const row = unwrap(
+    await supabase
+      .from('comments')
+      .insert(commentToDb(comment))
+      .select()
+      .single(),
+  )
+  return commentFromDb(row)
+}
+
+export const deleteComment = async (id) =>
+  unwrap(await supabase.from('comments').delete().eq('id', id))
 
 // ---------- Ratings ----------
-export const getRatings = (beanId, userId) => {
-  const params = new URLSearchParams()
-  if (beanId !== undefined) params.set('beanId', beanId)
-  if (userId !== undefined) params.set('userId', userId)
-  const qs = params.toString()
-  return request(`/ratings${qs ? `?${qs}` : ''}`)
+export const getRatings = async (beanId, userId) => {
+  let q = supabase.from('ratings').select('*')
+  if (beanId !== undefined) q = q.eq('bean_id', beanId)
+  if (userId !== undefined) q = q.eq('user_id', userId)
+  const rows = unwrap(await q)
+  return mapMany(rows, ratingFromDb)
 }
-export const addRating = (rating) =>
-  request('/ratings', { method: 'POST', body: JSON.stringify(rating) })
-export const updateRating = (id, rating) =>
-  request(`/ratings/${id}`, { method: 'PUT', body: JSON.stringify(rating) })
-export const deleteRating = (id) =>
-  request(`/ratings/${id}`, { method: 'DELETE' })
+
+export const addRating = async (rating) => {
+  const row = unwrap(
+    await supabase
+      .from('ratings')
+      .insert(ratingToDb(rating))
+      .select()
+      .single(),
+  )
+  return ratingFromDb(row)
+}
+
+export const updateRating = async (id, rating) => {
+  const row = unwrap(
+    await supabase
+      .from('ratings')
+      .update(ratingToDb(rating))
+      .eq('id', id)
+      .select()
+      .single(),
+  )
+  return ratingFromDb(row)
+}
+
+export const deleteRating = async (id) =>
+  unwrap(await supabase.from('ratings').delete().eq('id', id))
 
 // ---------- Users ----------
-export const getUsers = () => request('/users')
-export const addUser = (user) =>
-  request('/users', { method: 'POST', body: JSON.stringify(user) })
+// users table has no camelCase columns (id, name, email, password, role),
+// so no mapping is needed.
+export const getUsers = async () =>
+  unwrap(await supabase.from('users').select('*'))
+
+export const addUser = async (user) =>
+  unwrap(await supabase.from('users').insert(user).select().single())
+
+// ---------- Seed (run once on first load if beans table is empty) ----------
+let seedAttempted = false
+export const seedBeansIfEmpty = async () => {
+  if (seedAttempted) return
+  seedAttempted = true
+  try {
+    const { count, error } = await supabase
+      .from('beans')
+      .select('*', { count: 'exact', head: true })
+    if (error) throw error
+    if (count && count > 0) return
+    // Strip vestigial fields that aren't real columns in the recreated
+    // schema (rating + comments live in their own tables).
+    const payload = seedBeansData.map((b) => {
+      // eslint-disable-next-line no-unused-vars
+      const { rating: _r, comments: _c, ...rest } = b
+      return beanToDb(rest)
+    })
+    const { error: insertError } = await supabase.from('beans').insert(payload)
+    if (insertError) throw insertError
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[v60-vault] Bean seed skipped:', err.message ?? err)
+  }
+}

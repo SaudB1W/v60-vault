@@ -31,6 +31,13 @@ export const uiStrings = {
     password: 'Password',
     welcomeBack: 'Welcome Back',
     createAccount: 'Create Account',
+    heroTitle1: 'Recipes worth',
+    heroTitle2: 'brewing twice',
+    heroTagline: 'A pour-over journal',
+    heroDesc:
+      'A small, opinionated vault of single-origin beans and the V60 recipes that pull the best out of them. Tap a card to see the dial-in.',
+    beansCount: (n) => `${n} beans`,
+    theCollection: 'The Collection',
   },
   ar: {
     viewRecipe: 'عرض الوصفة',
@@ -64,5 +71,12 @@ export const uiStrings = {
     password: 'كلمة المرور',
     welcomeBack: 'مرحباً بعودتك',
     createAccount: 'إنشاء حساب',
+    heroTitle1: 'وصفات تستحق',
+    heroTitle2: 'التحضير مرتين',
+    heroTagline: 'مجلة القهوة المقطرة',
+    heroDesc:
+      'مجموعة صغيرة ومختارة من حبوب القهوة أحادية المصدر ووصفات V60 التي تستخرج أفضل ما فيها. اضغط على بطاقة لترى التفاصيل.',
+    beansCount: (n) => `${n} حبة`,
+    theCollection: 'المجموعة',
   },
 }

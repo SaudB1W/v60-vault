@@ -59,7 +59,9 @@ export default function BeanCard({ bean }) {
             <span className="text-base leading-none" aria-hidden="true">
               {bean.flag}
             </span>
-            <span className="font-medium">{displayBean.origin}</span>
+            {language !== 'ar' && (
+              <span className="font-medium">{displayBean.origin}</span>
+            )}
           </div>
           <span
             className={`text-[11px] uppercase tracking-wider font-semibold px-2.5 py-1 rounded-full border ${roastClass}`}

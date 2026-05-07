@@ -71,19 +71,25 @@ export default function LandingPage() {
             )}
           </div>
 
-          <div className="mt-10 sm:mt-16 max-w-2xl">
+          <div
+            className={`mt-10 sm:mt-16 max-w-2xl ${
+              language === 'ar' ? 'mx-auto text-center' : ''
+            }`}
+          >
             <p className="uppercase text-xs tracking-[0.22em] text-gold font-semibold mb-4">
-              A pour-over journal
+              {t.heroTagline}
             </p>
             <h1 className="font-display text-4xl sm:text-6xl leading-[1.05] text-espresso">
-              Recipes worth
+              {t.heroTitle1}
               <br />
-              <span className="italic text-gold">brewing twice.</span>
+              <span className="italic text-gold">{t.heroTitle2}.</span>
             </h1>
-            <p className="mt-5 sm:mt-6 text-base sm:text-lg text-espresso/70 max-w-xl">
-              A small, opinionated vault of single-origin beans and the V60
-              recipes that pull the best out of them. Tap a card to see the
-              dial-in.
+            <p
+              className={`mt-5 sm:mt-6 text-base sm:text-lg text-espresso/70 max-w-xl ${
+                language === 'ar' ? 'mx-auto' : ''
+              }`}
+            >
+              {t.heroDesc}
             </p>
           </div>
         </div>
@@ -92,10 +98,10 @@ export default function LandingPage() {
       <main className="max-w-6xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
         <div className="flex items-baseline justify-between mb-6 sm:mb-8">
           <h2 className="font-display text-2xl sm:text-3xl text-espresso">
-            The Collection
+            {t.theCollection}
           </h2>
           <span className="text-sm text-espresso/55 tabular-nums">
-            {beans.length} beans
+            {t.beansCount(beans.length)}
           </span>
         </div>
 

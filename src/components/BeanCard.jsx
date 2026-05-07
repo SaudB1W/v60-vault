@@ -22,7 +22,7 @@ export default function BeanCard({ bean }) {
             <img
               src={bean.roastery_logo_url}
               alt=""
-              className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md"
+              className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md"
             />
           </div>
         )}

@@ -223,8 +223,6 @@ export default function AdminPage() {
             notes: p.notes.trim(),
           })),
         },
-        rating: 0,
-        comments: [],
       }
 
       if (editingId) {

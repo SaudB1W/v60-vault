@@ -48,7 +48,13 @@ const COMMENT_FROM_DB = {
   created_at: 'createdAt',
 }
 
-const beanToDb = (b) => renameKeys(b, BEAN_TO_DB)
+const stripNonBeanColumns = (b) => {
+  if (b == null) return b
+  // eslint-disable-next-line no-unused-vars
+  const { rating: _r, comments: _c, ...rest } = b
+  return rest
+}
+const beanToDb = (b) => renameKeys(stripNonBeanColumns(b), BEAN_TO_DB)
 const beanFromDb = (r) => renameKeys(r, BEAN_FROM_DB)
 const ratingToDb = (r) => renameKeys(r, RATING_TO_DB)
 const ratingFromDb = (r) => renameKeys(r, RATING_FROM_DB)

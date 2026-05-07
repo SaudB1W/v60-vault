@@ -171,11 +171,22 @@ export const seedBeansIfEmpty = async () => {
     if (error) throw error
     if (count && count > 0) return
     // Strip vestigial fields that aren't real columns in the recreated
-    // schema (rating + comments live in their own tables).
+    // schema (rating + comments live in their own tables; roastery_logo_url
+    // is set later via the admin form, not seeded).
     const payload = seedBeansData.map((b) => {
-      // eslint-disable-next-line no-unused-vars
-      const { rating: _r, comments: _c, ...rest } = b
-      return beanToDb(rest)
+      const allowed = {
+        id: b.id,
+        name: b.name,
+        origin: b.origin,
+        flag: b.flag,
+        variety: b.variety,
+        elevation: b.elevation,
+        processing: b.processing,
+        roastLevel: b.roastLevel,
+        description: b.description,
+        brew: b.brew,
+      }
+      return beanToDb(allowed)
     })
     const { error: insertError } = await supabase.from('beans').insert(payload)
     if (insertError) throw insertError

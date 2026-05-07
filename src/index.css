@@ -77,3 +77,10 @@ html {
   background: var(--gold);
   color: var(--cream);
 }
+
+/* Arabic / RTL */
+.rtl {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Tajawal', sans-serif;
+}

@@ -5,9 +5,13 @@ import V60Logo from '../components/V60Logo.jsx'
 import { beans as seedBeans } from '../data/beans.js'
 import { getBeans } from '../api.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useLanguage } from '../context/LanguageContext.jsx'
+import { uiStrings } from '../utils/uiStrings.js'
 
 export default function LandingPage() {
   const { user, logout } = useAuth()
+  const { language, toggleLanguage } = useLanguage()
+  const t = uiStrings[language]
   const [beans, setBeans] = useState(seedBeans)
 
   useEffect(() => {
@@ -48,14 +52,20 @@ export default function LandingPage() {
                     to="/admin"
                     className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
                   >
-                    Admin Panel
+                    {t.adminPanel}
                   </Link>
                 )}
+                <button
+                  onClick={toggleLanguage}
+                  className="rounded-full border border-oatmeal px-3 py-1.5 text-xs font-semibold text-espresso hover:bg-cream/60 transition-colors"
+                >
+                  {language === 'en' ? 'العربية' : 'English'}
+                </button>
                 <button
                   onClick={logout}
                   className="rounded-full border border-oatmeal px-3 py-1.5 text-xs font-semibold text-espresso hover:bg-cream/60 transition-colors"
                 >
-                  Logout
+                  {t.logout}
                 </button>
               </div>
             )}

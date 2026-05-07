@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useLanguage } from '../context/LanguageContext.jsx'
+import { uiStrings } from '../utils/uiStrings.js'
 import V60Logo from '../components/V60Logo.jsx'
 
 export default function SignupPage() {
   const { signup, user } = useAuth()
+  const { language, toggleLanguage } = useLanguage()
+  const t = uiStrings[language]
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -45,7 +49,7 @@ export default function SignupPage() {
             The V60 Vault
           </p>
           <h1 className="font-display text-3xl text-espresso mt-2">
-            Create your account
+            {t.createAccount}
           </h1>
           <p className="text-sm text-espresso/60 mt-1">
             Start your pour-over journal.
@@ -58,7 +62,7 @@ export default function SignupPage() {
               htmlFor="name"
               className="block text-xs uppercase tracking-[0.18em] text-espresso/60 font-semibold mb-1.5"
             >
-              Name
+              {t.name}
             </label>
             <input
               id="name"
@@ -77,7 +81,7 @@ export default function SignupPage() {
               htmlFor="email"
               className="block text-xs uppercase tracking-[0.18em] text-espresso/60 font-semibold mb-1.5"
             >
-              Email
+              {t.email}
             </label>
             <input
               id="email"
@@ -96,7 +100,7 @@ export default function SignupPage() {
               htmlFor="password"
               className="block text-xs uppercase tracking-[0.18em] text-espresso/60 font-semibold mb-1.5"
             >
-              Password
+              {t.password}
             </label>
             <input
               id="password"
@@ -122,19 +126,26 @@ export default function SignupPage() {
             disabled={submitting}
             className="w-full rounded-full bg-espresso text-cream py-2.5 text-sm font-semibold tracking-wide hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {submitting ? 'Creating account…' : 'Create account'}
+            {submitting ? '…' : t.createAccount}
           </button>
         </form>
 
         <p className="text-center text-sm text-espresso/65 mt-6">
-          Already have an account?{' '}
           <Link
             to="/login"
             className="text-espresso font-semibold underline-offset-2 hover:underline"
           >
-            Sign in
+            {t.signIn}
           </Link>
         </p>
+
+        <button
+          type="button"
+          onClick={toggleLanguage}
+          className="mt-4 mx-auto block rounded-full border border-oatmeal px-3 py-1.5 text-xs font-semibold text-espresso hover:bg-cream/60 transition-colors"
+        >
+          {language === 'en' ? 'العربية' : 'English'}
+        </button>
       </div>
     </div>
   )

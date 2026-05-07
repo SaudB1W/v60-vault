@@ -5,6 +5,9 @@ import { getBean } from '../api.js'
 import V60Logo from '../components/V60Logo.jsx'
 import StarRating from '../components/StarRating.jsx'
 import Comments from '../components/Comments.jsx'
+import { useLanguage } from '../context/LanguageContext.jsx'
+import { uiStrings } from '../utils/uiStrings.js'
+import { translateBean } from '../utils/translate.js'
 
 function MetaPill({ children }) {
   return (
@@ -30,8 +33,12 @@ function StatBlock({ label, value, sub }) {
 
 export default function BeanDetailPage() {
   const { id } = useParams()
+  const { language } = useLanguage()
+  const t = uiStrings[language]
   const [bean, setBean] = useState(() => beans.find((b) => b.id === id) ?? null)
+  const [displayBean, setDisplayBean] = useState(bean)
   const [loading, setLoading] = useState(true)
+  const [translating, setTranslating] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -50,6 +57,29 @@ export default function BeanDetailPage() {
       cancelled = true
     }
   }, [id])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!bean) {
+      setDisplayBean(null)
+      return
+    }
+    if (language === 'ar') {
+      setTranslating(true)
+      translateBean(bean, 'ar')
+        .then((translated) => {
+          if (!cancelled) setDisplayBean(translated)
+        })
+        .finally(() => {
+          if (!cancelled) setTranslating(false)
+        })
+    } else {
+      setDisplayBean(bean)
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [bean, language])
 
   if (!bean && !loading) {
     return (
@@ -98,23 +128,23 @@ export default function BeanDetailPage() {
           <div className="mt-8 sm:mt-12">
             <div className="flex items-center gap-2 text-sm text-espresso/65 mb-3">
               <span className="text-base" aria-hidden="true">{bean.flag}</span>
-              <span className="font-medium">{bean.origin}</span>
+              <span className="font-medium">{(displayBean ?? bean).origin}</span>
               <span className="text-espresso/30">·</span>
-              <span>{bean.variety}</span>
+              <span>{(displayBean ?? bean).variety}</span>
             </div>
 
-            <h1 className="font-display text-4xl sm:text-6xl text-espresso leading-[1.05]">
-              {bean.name}
+            <h1 className={`font-display text-4xl sm:text-6xl text-espresso leading-[1.05] ${translating ? 'opacity-60' : ''}`}>
+              {(displayBean ?? bean).name}
             </h1>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <MetaPill>{bean.processing}</MetaPill>
+              <MetaPill>{(displayBean ?? bean).processing}</MetaPill>
               <MetaPill>{bean.roastLevel} roast</MetaPill>
               <MetaPill>{bean.elevation}</MetaPill>
             </div>
 
             <p className="mt-6 text-espresso/75 max-w-2xl leading-relaxed">
-              {bean.description}
+              {(displayBean ?? bean).description}
             </p>
           </div>
         </div>
@@ -131,7 +161,7 @@ export default function BeanDetailPage() {
               <div className="flex items-center gap-2">
                 <V60Logo className="w-6 h-6 text-gold" />
                 <span className="text-xs uppercase tracking-[0.22em] text-gold font-semibold">
-                  Brew Dashboard
+                  {t.brewDashboard}
                 </span>
               </div>
               <span className="text-xs text-cream/50 tabular-nums">
@@ -172,11 +202,11 @@ export default function BeanDetailPage() {
 
           <div className="bg-cream text-espresso p-6 sm:p-8 border-t-4 border-gold">
             <h3 className="font-display text-xl sm:text-2xl mb-5">
-              The Pours
+              {t.pours}
             </h3>
 
             <ol className="space-y-4">
-              {bean.brew.pours.map((pour, i) => (
+              {(displayBean ?? bean).brew.pours.map((pour, i) => (
                 <li
                   key={i}
                   className="flex gap-4 sm:gap-5 p-4 sm:p-5 bg-white/70 border border-oatmeal rounded-card min-h-[88px]"
@@ -210,7 +240,7 @@ export default function BeanDetailPage() {
         <section className="bg-white/70 border border-oatmeal rounded-card shadow-card p-6 sm:p-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-display text-xl sm:text-2xl text-espresso">
-              Your Rating
+              {t.rating}
             </h3>
           </div>
           <p className="text-sm text-espresso/60 mb-5">
@@ -222,7 +252,7 @@ export default function BeanDetailPage() {
         {/* Comments */}
         <section className="bg-white/70 border border-oatmeal rounded-card shadow-card p-6 sm:p-8">
           <h3 className="font-display text-xl sm:text-2xl text-espresso mb-1">
-            Brew Notes
+            {t.comments}
           </h3>
           <p className="text-sm text-espresso/60 mb-5">
             Log your tweaks across brews — grind, agitation, what you tasted.

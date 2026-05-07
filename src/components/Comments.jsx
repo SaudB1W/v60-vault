@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { addComment, deleteComment, getComments } from '../api.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useLanguage } from '../context/LanguageContext.jsx'
+import { uiStrings } from '../utils/uiStrings.js'
 
 const formatTimestamp = (iso) => {
   const d = new Date(iso)
@@ -15,6 +17,8 @@ const formatTimestamp = (iso) => {
 
 export default function Comments({ beanId }) {
   const { user } = useAuth()
+  const { language } = useLanguage()
+  const t = uiStrings[language]
   const isAdmin = user?.role === 'admin'
 
   const [comments, setComments] = useState([])
@@ -80,7 +84,7 @@ export default function Comments({ beanId }) {
     <div>
       <form onSubmit={submit} className="space-y-3">
         <label htmlFor="comment" className="sr-only">
-          Add a comment
+          {t.addComment}
         </label>
         <textarea
           id="comment"
@@ -99,7 +103,7 @@ export default function Comments({ beanId }) {
             disabled={!draft.trim() || !user || posting}
             className="inline-flex items-center gap-2 rounded-full bg-espresso text-cream px-5 py-2 text-sm font-semibold tracking-wide hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {posting ? 'Posting…' : 'Post note'}
+            {posting ? '…' : t.submitComment}
           </button>
         </div>
       </form>

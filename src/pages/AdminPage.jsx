@@ -14,6 +14,7 @@ import {
 import { supabase } from '../supabaseClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import V60Logo from '../components/V60Logo.jsx'
+import { translateText } from '../utils/translate.js'
 
 const emptyPour = () => ({ label: '', volume: '', notes: '' })
 
@@ -202,27 +203,60 @@ export default function AdminPage() {
         roasteryLogoUrl = publicUrlData?.publicUrl ?? null
       }
 
+      const trimmedPours = form.brew.pours.map((p) => ({
+        label: p.label.trim(),
+        volume: p.volume.trim(),
+        notes: p.notes.trim(),
+      }))
+
+      const name = form.name.trim()
+      const origin = form.origin.trim()
+      const variety = form.variety.trim()
+      const processing = form.processing
+      const description = form.description.trim()
+
+      // Pre-translate all user-facing bean text to Arabic so readers in
+      // ar-mode get instant translations without an API call per page load.
+      // Translation failures fall back to the English text (translateText
+      // returns the input on error).
+      const [name_ar, origin_ar, variety_ar, processing_ar, description_ar] =
+        await Promise.all([
+          translateText(name, 'ar'),
+          translateText(origin, 'ar'),
+          translateText(variety, 'ar'),
+          translateText(processing, 'ar'),
+          translateText(description, 'ar'),
+        ])
+      const pours_ar = await Promise.all(
+        trimmedPours.map(async (p) => ({
+          label: await translateText(p.label, 'ar'),
+          notes: await translateText(p.notes, 'ar'),
+        })),
+      )
+
       const payload = {
         id,
-        name: form.name.trim(),
-        origin: form.origin.trim(),
+        name,
+        origin,
         flag: form.flag.trim(),
-        variety: form.variety.trim(),
+        variety,
         elevation: form.elevation.trim(),
-        processing: form.processing,
+        processing,
         roastLevel: form.roastLevel,
-        description: form.description.trim(),
+        description,
         roastery_logo_url: roasteryLogoUrl,
         brew: {
           waterTemp: form.brew.waterTemp.trim(),
           totalTime: form.brew.totalTime.trim(),
           ratio: form.brew.ratio.trim(),
-          pours: form.brew.pours.map((p) => ({
-            label: p.label.trim(),
-            volume: p.volume.trim(),
-            notes: p.notes.trim(),
-          })),
+          pours: trimmedPours,
         },
+        name_ar,
+        origin_ar,
+        variety_ar,
+        processing_ar,
+        description_ar,
+        pours_ar,
       }
 
       if (editingId) {

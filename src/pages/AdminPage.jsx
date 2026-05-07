@@ -11,6 +11,7 @@ import {
   getUsers,
   updateBean,
 } from '../api.js'
+import { supabase } from '../supabaseClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import V60Logo from '../components/V60Logo.jsx'
 
@@ -26,6 +27,7 @@ const emptyForm = () => ({
   processing: 'Washed',
   roastLevel: 'Light',
   description: '',
+  roastery_logo_url: null,
   brew: {
     waterTemp: '',
     totalTime: '',
@@ -78,6 +80,7 @@ export default function AdminPage() {
   const [form, setForm] = useState(emptyForm())
   const [editingId, setEditingId] = useState(null)
   const [savingBean, setSavingBean] = useState(false)
+  const [logoFile, setLogoFile] = useState(null)
 
   const refresh = async () => {
     setLoading(true)
@@ -123,6 +126,7 @@ export default function AdminPage() {
       processing: bean.processing ?? 'Washed',
       roastLevel: bean.roastLevel ?? 'Light',
       description: bean.description ?? '',
+      roastery_logo_url: bean.roastery_logo_url ?? null,
       brew: {
         waterTemp: bean.brew?.waterTemp ?? '',
         totalTime: bean.brew?.totalTime ?? '',
@@ -133,6 +137,7 @@ export default function AdminPage() {
             : [emptyPour()],
       },
     })
+    setLogoFile(null)
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
@@ -141,6 +146,7 @@ export default function AdminPage() {
   const cancelEdit = () => {
     setEditingId(null)
     setForm(emptyForm())
+    setLogoFile(null)
   }
 
   const updateField = (key, value) =>
@@ -178,6 +184,24 @@ export default function AdminPage() {
     setErr('')
     try {
       const id = editingId ?? (form.id.trim() || slugify(form.name))
+
+      let roasteryLogoUrl = form.roastery_logo_url ?? null
+      if (logoFile) {
+        const path = `${Date.now()}-${logoFile.name}`
+        const { error: uploadError } = await supabase.storage
+          .from('roastery-logos')
+          .upload(path, logoFile, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: logoFile.type || undefined,
+          })
+        if (uploadError) throw uploadError
+        const { data: publicUrlData } = supabase.storage
+          .from('roastery-logos')
+          .getPublicUrl(path)
+        roasteryLogoUrl = publicUrlData?.publicUrl ?? null
+      }
+
       const payload = {
         id,
         name: form.name.trim(),
@@ -188,6 +212,7 @@ export default function AdminPage() {
         processing: form.processing,
         roastLevel: form.roastLevel,
         description: form.description.trim(),
+        roastery_logo_url: roasteryLogoUrl,
         brew: {
           waterTemp: form.brew.waterTemp.trim(),
           totalTime: form.brew.totalTime.trim(),
@@ -371,6 +396,25 @@ export default function AdminPage() {
                     onChange={(v) => updateField('description', v)}
                     rows={3}
                   />
+
+                  <label className="block">
+                    <span className="block text-xs uppercase tracking-[0.18em] text-espresso/60 font-semibold mb-1.5">
+                      Roastery Logo (optional)
+                    </span>
+                    {form.roastery_logo_url && !logoFile && (
+                      <img
+                        src={form.roastery_logo_url}
+                        alt="Current roastery logo"
+                        className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md mb-2"
+                      />
+                    )}
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp,.svg,image/jpeg,image/png,image/webp,image/svg+xml"
+                      onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+                      className="block text-sm text-espresso/80 file:mr-3 file:rounded-full file:border-0 file:bg-espresso file:text-cream file:px-4 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer hover:file:bg-gold"
+                    />
+                  </label>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <Field

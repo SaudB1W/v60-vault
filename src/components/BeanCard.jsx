@@ -17,6 +17,15 @@ export default function BeanCard({ bean }) {
       className="bean-card group block bg-white/70 backdrop-blur-sm border border-oatmeal rounded-card shadow-card hover:shadow-cardHover overflow-hidden"
     >
       <div className="p-5 sm:p-6 flex flex-col h-full">
+        {bean.roastery_logo_url && (
+          <div className="flex justify-center mb-3">
+            <img
+              src={bean.roastery_logo_url}
+              alt=""
+              className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md"
+            />
+          </div>
+        )}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2 text-sm text-espresso/70">
             <span className="text-base leading-none" aria-hidden="true">

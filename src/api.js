@@ -48,6 +48,21 @@ const COMMENT_FROM_DB = {
   created_at: 'createdAt',
 }
 
+const SUGGESTION_TO_DB = {
+  beanId: 'bean_id',
+  userId: 'user_id',
+  userName: 'user_name',
+  makeMain: 'make_main',
+  createdAt: 'created_at',
+}
+const SUGGESTION_FROM_DB = {
+  bean_id: 'beanId',
+  user_id: 'userId',
+  user_name: 'userName',
+  make_main: 'makeMain',
+  created_at: 'createdAt',
+}
+
 const stripNonBeanColumns = (b) => {
   if (b == null) return b
   // eslint-disable-next-line no-unused-vars
@@ -60,6 +75,8 @@ const ratingToDb = (r) => renameKeys(r, RATING_TO_DB)
 const ratingFromDb = (r) => renameKeys(r, RATING_FROM_DB)
 const commentToDb = (c) => renameKeys(c, COMMENT_TO_DB)
 const commentFromDb = (r) => renameKeys(r, COMMENT_FROM_DB)
+const suggestionToDb = (s) => renameKeys(s, SUGGESTION_TO_DB)
+const suggestionFromDb = (r) => renameKeys(r, SUGGESTION_FROM_DB)
 
 // ---------- Beans ----------
 export const getBeans = async () => {
@@ -155,6 +172,54 @@ export const updateRating = async (id, rating) => {
 
 export const deleteRating = async (id) =>
   unwrap(await supabase.from('ratings').delete().eq('id', id))
+
+// ---------- Suggestions ----------
+export const getSuggestions = async (beanId) => {
+  let q = supabase
+    .from('suggestions')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (beanId !== undefined) q = q.eq('bean_id', beanId)
+  const rows = unwrap(await q)
+  return mapMany(rows, suggestionFromDb)
+}
+
+export const getUserSuggestions = async (userId) => {
+  const rows = unwrap(
+    await supabase
+      .from('suggestions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false }),
+  )
+  return mapMany(rows, suggestionFromDb)
+}
+
+export const addSuggestion = async (suggestion) => {
+  const row = unwrap(
+    await supabase
+      .from('suggestions')
+      .insert(suggestionToDb(suggestion))
+      .select()
+      .single(),
+  )
+  return suggestionFromDb(row)
+}
+
+export const updateSuggestion = async (id, updates) => {
+  const row = unwrap(
+    await supabase
+      .from('suggestions')
+      .update(suggestionToDb(updates))
+      .eq('id', id)
+      .select()
+      .single(),
+  )
+  return suggestionFromDb(row)
+}
+
+export const deleteSuggestion = async (id) =>
+  unwrap(await supabase.from('suggestions').delete().eq('id', id))
 
 // ---------- Users ----------
 // users table has no camelCase columns (id, name, email, password, role),

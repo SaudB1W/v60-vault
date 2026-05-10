@@ -4,6 +4,7 @@ import BeanDetailPage from './pages/BeanDetailPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import SignupPage from './pages/SignupPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
+import MySuggestionsPage from './pages/MySuggestionsPage.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import { useLanguage } from './context/LanguageContext.jsx'
 
@@ -41,6 +42,14 @@ export default function App() {
           element={
             <ProtectedRoute adminOnly>
               <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-suggestions"
+          element={
+            <ProtectedRoute>
+              <MySuggestionsPage />
             </ProtectedRoute>
           }
         />

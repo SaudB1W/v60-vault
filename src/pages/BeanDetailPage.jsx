@@ -5,6 +5,8 @@ import { getBean } from '../api.js'
 import V60Logo from '../components/V60Logo.jsx'
 import StarRating from '../components/StarRating.jsx'
 import Comments from '../components/Comments.jsx'
+import CommunityRecipes from '../components/CommunityRecipes.jsx'
+import SuggestRecipe from '../components/SuggestRecipe.jsx'
 import { useLanguage } from '../context/LanguageContext.jsx'
 import { uiStrings } from '../utils/uiStrings.js'
 import { translateBean } from '../utils/translate.js'
@@ -235,6 +237,9 @@ export default function BeanDetailPage() {
             </ol>
           </div>
         </section>
+
+        <CommunityRecipes beanId={bean.id} />
+        <SuggestRecipe beanId={bean.id} />
 
         {/* Rating */}
         <section className="bg-white/70 border border-oatmeal rounded-card shadow-card p-6 sm:p-8">

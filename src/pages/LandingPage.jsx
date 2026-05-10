@@ -47,12 +47,19 @@ export default function LandingPage() {
                 <span className="text-espresso/70 hidden sm:inline">
                   Hello, <strong className="text-espresso">{user.name}</strong>
                 </span>
-                {user.role === 'admin' && (
+                {user.role === 'admin' ? (
                   <Link
                     to="/admin"
                     className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
                   >
                     {t.adminPanel}
+                  </Link>
+                ) : (
+                  <Link
+                    to="/my-suggestions"
+                    className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
+                  >
+                    {t.mySuggestions}
                   </Link>
                 )}
                 <button

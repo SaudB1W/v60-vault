@@ -5,11 +5,14 @@ import {
   deleteBean,
   deleteComment,
   deleteRating,
+  deleteSuggestion,
   getBeans,
   getComments,
   getRatings,
+  getSuggestions,
   getUsers,
   updateBean,
+  updateSuggestion,
 } from '../api.js'
 import { supabase } from '../supabaseClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -75,6 +78,8 @@ export default function AdminPage() {
   const [beans, setBeans] = useState([])
   const [comments, setComments] = useState([])
   const [users, setUsers] = useState([])
+  const [suggestions, setSuggestions] = useState([])
+  const [showResolved, setShowResolved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
 
@@ -87,10 +92,16 @@ export default function AdminPage() {
     setLoading(true)
     setErr('')
     try {
-      const [b, c, u] = await Promise.all([getBeans(), getComments(), getUsers()])
+      const [b, c, u, s] = await Promise.all([
+        getBeans(),
+        getComments(),
+        getUsers(),
+        getSuggestions(),
+      ])
       setBeans(b)
       setComments(c)
       setUsers(u)
+      setSuggestions(s)
     } catch (e) {
       setErr(e.message || 'Failed to load admin data.')
     } finally {
@@ -307,6 +318,56 @@ export default function AdminPage() {
       setErr(e.message || 'Delete failed.')
     }
   }
+
+  const acceptSuggestion = async (suggestion, makeMain) => {
+    try {
+      await updateSuggestion(suggestion.id, {
+        status: 'accepted',
+        makeMain: !!makeMain,
+      })
+      if (makeMain) {
+        const bean = beanById.get(String(suggestion.beanId))
+        if (bean) {
+          await updateBean(bean.id, { ...bean, brew: suggestion.brew })
+        }
+      }
+      await refresh()
+    } catch (e) {
+      setErr(e.message || 'Could not accept suggestion.')
+    }
+  }
+
+  const rejectSuggestion = async (suggestion) => {
+    try {
+      await updateSuggestion(suggestion.id, { status: 'rejected', makeMain: false })
+      await refresh()
+    } catch (e) {
+      setErr(e.message || 'Could not reject suggestion.')
+    }
+  }
+
+  const handleDeleteSuggestion = async (id) => {
+    try {
+      await deleteSuggestion(id)
+      await refresh()
+    } catch (e) {
+      setErr(e.message || 'Delete failed.')
+    }
+  }
+
+  const pendingSuggestions = suggestions.filter((s) => s.status === 'pending')
+  const resolvedSuggestions = suggestions.filter((s) => s.status !== 'pending')
+
+  const groupByBean = (list) => {
+    const groups = new Map()
+    list.forEach((s) => {
+      const key = String(s.beanId)
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key).push(s)
+    })
+    return groups
+  }
+  const pendingGroups = groupByBean(pendingSuggestions)
 
   return (
     <div className="min-h-screen bg-cream pb-16">
@@ -667,10 +728,224 @@ export default function AdminPage() {
                 )}
               </div>
             </section>
+
+            {/* Section C — Recipe Suggestions */}
+            <section>
+              <SectionHeader subtitle="Review brews submitted by community members.">
+                Recipe Suggestions
+              </SectionHeader>
+
+              <div className="bg-white/70 border border-oatmeal rounded-card shadow-card overflow-hidden">
+                {pendingSuggestions.length === 0 ? (
+                  <p className="p-5 text-sm text-espresso/55 italic">
+                    No pending suggestions.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-oatmeal">
+                    {Array.from(pendingGroups.entries()).map(([beanId, list]) => {
+                      const bean = beanById.get(beanId)
+                      return (
+                        <li key={beanId} className="p-4 sm:p-5">
+                          <div className="mb-3">
+                            <p className="text-xs uppercase tracking-[0.18em] text-espresso/55 font-semibold">
+                              {bean?.origin ?? '—'}
+                            </p>
+                            <p className="font-display text-lg sm:text-xl text-espresso">
+                              {bean?.name ?? beanId}
+                            </p>
+                          </div>
+                          <ul className="space-y-3">
+                            {list.map((s) => (
+                              <SuggestionRow
+                                key={s.id}
+                                suggestion={s}
+                                onAccept={acceptSuggestion}
+                                onReject={rejectSuggestion}
+                              />
+                            ))}
+                          </ul>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowResolved((v) => !v)}
+                  className="text-sm font-semibold text-espresso/70 hover:text-espresso underline-offset-2 hover:underline"
+                >
+                  {showResolved ? 'Hide' : 'Show'} accepted &amp; rejected ({resolvedSuggestions.length})
+                </button>
+                {showResolved && (
+                  <div className="mt-3 bg-white/70 border border-oatmeal rounded-card shadow-card overflow-hidden">
+                    {resolvedSuggestions.length === 0 ? (
+                      <p className="p-5 text-sm text-espresso/55 italic">
+                        Nothing here yet.
+                      </p>
+                    ) : (
+                      <ul className="divide-y divide-oatmeal">
+                        {resolvedSuggestions.map((s) => {
+                          const bean = beanById.get(String(s.beanId))
+                          return (
+                            <li key={s.id} className="p-4 sm:p-5">
+                              <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                                <span className="text-sm text-espresso/70">
+                                  <strong className="text-espresso">
+                                    {bean?.name ?? s.beanId}
+                                  </strong>
+                                  <span className="text-espresso/30 mx-1.5">·</span>
+                                  {s.userName}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`text-[11px] uppercase tracking-wider font-semibold px-2.5 py-1 rounded-full border ${
+                                      s.status === 'accepted'
+                                        ? 'bg-green-100 text-green-800 border-green-200'
+                                        : 'bg-red-100 text-red-800 border-red-200'
+                                    }`}
+                                  >
+                                    {s.status}
+                                  </span>
+                                  {s.status === 'accepted' && s.makeMain && (
+                                    <span className="text-[11px] uppercase tracking-wider font-semibold px-2.5 py-1 rounded-full border bg-gold/20 text-espresso border-gold/40">
+                                      Main
+                                    </span>
+                                  )}
+                                  <button
+                                    onClick={() => handleDeleteSuggestion(s.id)}
+                                    className="rounded-full border border-red-200 text-red-700 px-3 py-1 text-xs font-semibold hover:bg-red-50 transition-colors"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="text-xs text-espresso/65">
+                                {s.brew?.waterTemp} · {s.brew?.ratio} · {s.brew?.totalTime}
+                              </p>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
           </>
         )}
       </main>
     </div>
+  )
+}
+
+function SuggestionRow({ suggestion, onAccept, onReject }) {
+  const [decisionOpen, setDecisionOpen] = useState(false)
+  const s = suggestion
+  return (
+    <li className="bg-cream/60 border border-oatmeal rounded-card p-4">
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <span className="text-sm text-espresso/70">
+          <strong className="text-espresso">{s.userName || 'Unknown'}</strong>
+          <span className="text-espresso/30 mx-1.5">·</span>
+          <time dateTime={s.createdAt}>
+            {new Date(s.createdAt).toLocaleString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            })}
+          </time>
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-3 text-xs text-espresso/70 mb-3">
+        <div>
+          <span className="block text-[10px] uppercase tracking-wider text-espresso/50 font-semibold">
+            Water
+          </span>
+          <span className="font-display text-base text-espresso tabular-nums">
+            {s.brew?.waterTemp}
+          </span>
+        </div>
+        <div>
+          <span className="block text-[10px] uppercase tracking-wider text-espresso/50 font-semibold">
+            Ratio
+          </span>
+          <span className="font-display text-base text-espresso tabular-nums">
+            {s.brew?.ratio}
+          </span>
+        </div>
+        <div>
+          <span className="block text-[10px] uppercase tracking-wider text-espresso/50 font-semibold">
+            Time
+          </span>
+          <span className="font-display text-base text-espresso tabular-nums">
+            {s.brew?.totalTime}
+          </span>
+        </div>
+      </div>
+      {Array.isArray(s.brew?.pours) && s.brew.pours.length > 0 && (
+        <ol className="space-y-2 mb-3">
+          {s.brew.pours.map((p, i) => (
+            <li
+              key={i}
+              className="text-xs text-espresso/75 bg-white/70 border border-oatmeal rounded-card p-3"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-semibold text-espresso">
+                  {i + 1}. {p.label}
+                </span>
+                <span className="font-semibold text-gold tabular-nums">
+                  {p.volume}
+                </span>
+              </div>
+              {p.notes && <p className="mt-1 text-espresso/70">{p.notes}</p>}
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {!decisionOpen ? (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setDecisionOpen(true)}
+            className="rounded-full bg-espresso text-cream px-4 py-1.5 text-xs font-semibold hover:bg-gold transition-colors"
+          >
+            Accept
+          </button>
+          <button
+            onClick={() => onReject(s)}
+            className="rounded-full border border-red-200 text-red-700 px-4 py-1.5 text-xs font-semibold hover:bg-red-50 transition-colors"
+          >
+            Reject
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => onAccept(s, false)}
+            className="rounded-full border border-oatmeal px-4 py-1.5 text-xs font-semibold text-espresso hover:bg-cream/60 transition-colors"
+          >
+            Add as Alternative Recipe
+          </button>
+          <button
+            onClick={() => onAccept(s, true)}
+            className="rounded-full bg-gold text-cream px-4 py-1.5 text-xs font-semibold hover:bg-espresso transition-colors"
+          >
+            Make Main Recipe
+          </button>
+          <button
+            onClick={() => setDecisionOpen(false)}
+            className="text-xs font-semibold text-espresso/60 hover:text-espresso px-2 py-1.5"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    </li>
   )
 }
 

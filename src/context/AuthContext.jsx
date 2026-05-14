@@ -44,6 +44,11 @@ export function AuthProvider({ children }) {
       if (!cancelled) setHydrated(true)
     }
 
+    // Safety net: if Supabase is slow or unreachable, unblock the UI
+    // after 3s so ProtectedRoute can redirect unauthenticated users
+    // to /login instead of leaving the app stuck on the spinner.
+    const hydrationTimeout = setTimeout(finishHydration, 3000)
+
     ;(async () => {
       try {
         const { data } = await supabase.auth.getSession()
@@ -92,6 +97,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       cancelled = true
+      clearTimeout(hydrationTimeout)
       sub?.subscription?.unsubscribe?.()
     }
   }, [])

@@ -22,8 +22,13 @@ export default function App() {
       <div
         dir={isAr ? 'rtl' : 'ltr'}
         lang={isAr ? 'ar' : 'en'}
-        className={isAr ? 'rtl' : ''}
-      />
+        className={`${isAr ? 'rtl ' : ''}min-h-screen bg-cream flex items-center justify-center`}
+      >
+        <div
+          aria-label="Loading"
+          className="w-10 h-10 rounded-full border-4 border-oatmeal border-t-espresso animate-spin"
+        />
+      </div>
     )
   }
 

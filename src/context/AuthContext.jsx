@@ -4,6 +4,19 @@ import { seedBeansIfEmpty } from '../api.js'
 
 const AuthContext = createContext(null)
 
+const AUTH_TIMEOUT_MS = 10000
+
+const withTimeout = (promise, ms = AUTH_TIMEOUT_MS) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(
+        () => reject(new Error('Connection timeout, please try again')),
+        ms,
+      ),
+    ),
+  ])
+
 const profileToUser = (profile, authUser) => {
   if (!profile && !authUser) return null
   if (!profile) {
@@ -103,11 +116,18 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: String(email).trim(),
-      password,
-    })
-    if (error) throw error
+    const { data, error } = await withTimeout(
+      supabase.auth.signInWithPassword({
+        email: String(email).trim(),
+        password,
+      }),
+    )
+    if (error) {
+      throw new Error(error.message || 'Invalid email or password.')
+    }
+    if (!data?.user) {
+      throw new Error('Login failed — please try again.')
+    }
     const me = await fetchProfile(data.user)
     setUser(me)
     return me
@@ -117,15 +137,19 @@ export function AuthProvider({ children }) {
     const cleanEmail = String(email).trim()
     const cleanName = String(name).trim()
 
-    const { data, error } = await supabase.auth.signUp({
-      email: cleanEmail,
-      password,
-      options: { data: { name: cleanName } },
-    })
-    if (error) throw error
+    const { data, error } = await withTimeout(
+      supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: { data: { name: cleanName } },
+      }),
+    )
+    if (error) {
+      throw new Error(error.message || 'Sign up failed.')
+    }
     const authUser = data?.user
     if (!authUser) {
-      throw new Error('Sign up did not return a user.')
+      throw new Error('Sign up did not return a user — please try again.')
     }
 
     const { error: insertError } = await supabase.from('profiles').insert({
@@ -134,7 +158,9 @@ export function AuthProvider({ children }) {
       email: cleanEmail,
       role: 'user',
     })
-    if (insertError) throw insertError
+    if (insertError) {
+      throw new Error(insertError.message || 'Could not create your profile.')
+    }
 
     const me = {
       id: authUser.id,

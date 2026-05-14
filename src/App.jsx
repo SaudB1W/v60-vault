@@ -7,10 +7,25 @@ import AdminPage from './pages/AdminPage.jsx'
 import MySuggestionsPage from './pages/MySuggestionsPage.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import { useLanguage } from './context/LanguageContext.jsx'
+import { useAuth } from './context/AuthContext.jsx'
 
 export default function App() {
   const { language } = useLanguage()
+  const { hydrated } = useAuth()
   const isAr = language === 'ar'
+
+  // Hold the whole tree until Supabase has answered the session check —
+  // otherwise protected routes would briefly mount with a null user and
+  // RLS-blocked queries would fire before the /login redirect lands.
+  if (!hydrated) {
+    return (
+      <div
+        dir={isAr ? 'rtl' : 'ltr'}
+        lang={isAr ? 'ar' : 'en'}
+        className={isAr ? 'rtl' : ''}
+      />
+    )
+  }
 
   return (
     <div

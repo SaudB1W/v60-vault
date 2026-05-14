@@ -40,33 +40,52 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let cancelled = false
 
+    const finishHydration = () => {
+      if (!cancelled) setHydrated(true)
+    }
+
     ;(async () => {
       try {
         const { data } = await supabase.auth.getSession()
         const session = data?.session ?? null
         if (session?.user) {
-          const me = await fetchProfile(session.user)
-          if (!cancelled) setUser(me)
+          try {
+            const me = await fetchProfile(session.user)
+            if (!cancelled) setUser(me)
+          } catch {
+            if (!cancelled) setUser(null)
+          }
+        } else if (!cancelled) {
+          setUser(null)
         }
       } catch {
         if (!cancelled) setUser(null)
       } finally {
-        if (!cancelled) setHydrated(true)
+        finishHydration()
       }
-      seedBeansIfEmpty()
+      // Best-effort; never let a seeding failure block the UI.
+      try {
+        await seedBeansIfEmpty()
+      } catch {
+        /* ignored — seeding is non-critical */
+      }
     })()
 
     const { data: sub } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (cancelled) return
         if (!session?.user) {
           setUser(null)
+          finishHydration()
           return
         }
         try {
           const me = await fetchProfile(session.user)
-          setUser(me)
+          if (!cancelled) setUser(me)
         } catch {
-          setUser(null)
+          if (!cancelled) setUser(null)
+        } finally {
+          finishHydration()
         }
       },
     )

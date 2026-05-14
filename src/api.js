@@ -221,14 +221,12 @@ export const updateSuggestion = async (id, updates) => {
 export const deleteSuggestion = async (id) =>
   unwrap(await supabase.from('suggestions').delete().eq('id', id))
 
-// ---------- Users ----------
-// users table has no camelCase columns (id, name, email, password, role),
-// so no mapping is needed.
+// ---------- Profiles ----------
+// Auth identity now lives in Supabase Auth; profiles holds the
+// app-visible fields (id, name, email, role). Exported as getUsers so
+// existing call sites that just want a directory of accounts keep working.
 export const getUsers = async () =>
-  unwrap(await supabase.from('users').select('*'))
-
-export const addUser = async (user) =>
-  unwrap(await supabase.from('users').insert(user).select().single())
+  unwrap(await supabase.from('profiles').select('*'))
 
 // ---------- Seed (run once on first load if beans table is empty) ----------
 let seedAttempted = false

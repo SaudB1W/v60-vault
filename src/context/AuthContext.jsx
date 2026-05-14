@@ -2,79 +2,128 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 import { seedBeansIfEmpty } from '../api.js'
 
-const STORAGE_KEY = 'v60_user'
-
 const AuthContext = createContext(null)
+
+const profileToUser = (profile, authUser) => {
+  if (!profile && !authUser) return null
+  if (!profile) {
+    return {
+      id: authUser.id,
+      name: authUser.user_metadata?.name ?? '',
+      email: authUser.email ?? '',
+      role: 'user',
+    }
+  }
+  return {
+    id: profile.id,
+    name: profile.name ?? '',
+    email: profile.email ?? authUser?.email ?? '',
+    role: profile.role ?? 'user',
+  }
+}
+
+const fetchProfile = async (authUser) => {
+  if (!authUser) return null
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', authUser.id)
+    .maybeSingle()
+  if (error) throw error
+  return profileToUser(data, authUser)
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [hydrated, setHydrated] = useState(false)
 
-  // Rehydrate cached user + run a one-time bean seed.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) setUser(JSON.parse(raw))
-    } catch {
-      /* ignore corrupt payload */
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const session = data?.session ?? null
+        if (session?.user) {
+          const me = await fetchProfile(session.user)
+          if (!cancelled) setUser(me)
+        }
+      } catch {
+        if (!cancelled) setUser(null)
+      } finally {
+        if (!cancelled) setHydrated(true)
+      }
+      seedBeansIfEmpty()
+    })()
+
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!session?.user) {
+          setUser(null)
+          return
+        }
+        try {
+          const me = await fetchProfile(session.user)
+          setUser(me)
+        } catch {
+          setUser(null)
+        }
+      },
+    )
+
+    return () => {
+      cancelled = true
+      sub?.subscription?.unsubscribe?.()
     }
-    setHydrated(true)
-    seedBeansIfEmpty()
   }, [])
 
-  const persist = (next) => {
-    setUser(next)
-    if (next) localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-    else localStorage.removeItem(STORAGE_KEY)
-  }
-
   const login = async (email, password) => {
-    const cleanEmail = String(email).trim()
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .ilike('email', cleanEmail)
-      .eq('password', password)
-      .maybeSingle()
-
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: String(email).trim(),
+      password,
+    })
     if (error) throw error
-    if (!data) throw new Error('Invalid email or password.')
-
-    persist(data)
-    return data
+    const me = await fetchProfile(data.user)
+    setUser(me)
+    return me
   }
 
   const signup = async (name, email, password) => {
     const cleanEmail = String(email).trim()
+    const cleanName = String(name).trim()
 
-    const { data: existing, error: lookupError } = await supabase
-      .from('users')
-      .select('id')
-      .ilike('email', cleanEmail)
-      .maybeSingle()
-    if (lookupError) throw lookupError
-    if (existing) {
-      throw new Error('An account with that email already exists.')
+    const { data, error } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password,
+      options: { data: { name: cleanName } },
+    })
+    if (error) throw error
+    const authUser = data?.user
+    if (!authUser) {
+      throw new Error('Sign up did not return a user.')
     }
 
-    const { data, error } = await supabase
-      .from('users')
-      .insert({
-        name: String(name).trim(),
-        email: cleanEmail,
-        password,
-        role: 'user',
-      })
-      .select()
-      .single()
-    if (error) throw error
+    const { error: insertError } = await supabase.from('profiles').insert({
+      id: authUser.id,
+      name: cleanName,
+      email: cleanEmail,
+      role: 'user',
+    })
+    if (insertError) throw insertError
 
-    persist(data)
-    return data
+    const me = {
+      id: authUser.id,
+      name: cleanName,
+      email: cleanEmail,
+      role: 'user',
+    }
+    setUser(me)
+    return me
   }
 
-  const logout = () => {
-    persist(null)
+  const logout = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
   }
 
   return (

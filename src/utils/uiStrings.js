@@ -47,6 +47,13 @@ export const uiStrings = {
     communityRecipes: 'Community Recipes',
     suggestionSubmitted: 'Your suggestion has been submitted for review',
     makeMainRecipe: 'Made Main Recipe',
+    suggestBean: 'Suggest a Coffee Bean',
+    beanDetails: 'Bean Details',
+    includeRecipe: 'Include a V60 Recipe',
+    submitBeanSuggestion: 'Submit Bean Suggestion',
+    beanSuggestions: 'Bean Suggestions',
+    beanSuggestionSubmitted:
+      'Your bean suggestion has been submitted for review',
   },
   ar: {
     viewRecipe: 'عرض الوصفة',
@@ -96,5 +103,11 @@ export const uiStrings = {
     communityRecipes: 'وصفات المجتمع',
     suggestionSubmitted: 'تم إرسال اقتراحك للمراجعة',
     makeMainRecipe: 'تم اعتمادها وصفة رئيسية',
+    suggestBean: 'اقتراح حبة قهوة',
+    beanDetails: 'تفاصيل الحبة',
+    includeRecipe: 'إضافة وصفة V60',
+    submitBeanSuggestion: 'إرسال اقتراح الحبة',
+    beanSuggestions: 'اقتراحات الحبوب',
+    beanSuggestionSubmitted: 'تم إرسال اقتراح الحبة للمراجعة',
   },
 }

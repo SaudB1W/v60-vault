@@ -63,6 +63,21 @@ const SUGGESTION_FROM_DB = {
   created_at: 'createdAt',
 }
 
+const BEAN_SUGGESTION_TO_DB = {
+  userId: 'user_id',
+  userName: 'user_name',
+  roastLevel: 'roast_level',
+  imageUrl: 'image_url',
+  createdAt: 'created_at',
+}
+const BEAN_SUGGESTION_FROM_DB = {
+  user_id: 'userId',
+  user_name: 'userName',
+  roast_level: 'roastLevel',
+  image_url: 'imageUrl',
+  created_at: 'createdAt',
+}
+
 const stripNonBeanColumns = (b) => {
   if (b == null) return b
   // eslint-disable-next-line no-unused-vars
@@ -77,6 +92,8 @@ const commentToDb = (c) => renameKeys(c, COMMENT_TO_DB)
 const commentFromDb = (r) => renameKeys(r, COMMENT_FROM_DB)
 const suggestionToDb = (s) => renameKeys(s, SUGGESTION_TO_DB)
 const suggestionFromDb = (r) => renameKeys(r, SUGGESTION_FROM_DB)
+const beanSuggestionToDb = (s) => renameKeys(s, BEAN_SUGGESTION_TO_DB)
+const beanSuggestionFromDb = (r) => renameKeys(r, BEAN_SUGGESTION_FROM_DB)
 
 // ---------- Beans ----------
 export const getBeans = async () => {
@@ -220,6 +237,54 @@ export const updateSuggestion = async (id, updates) => {
 
 export const deleteSuggestion = async (id) =>
   unwrap(await supabase.from('suggestions').delete().eq('id', id))
+
+// ---------- Bean suggestions ----------
+export const getBeanSuggestions = async () => {
+  const rows = unwrap(
+    await supabase
+      .from('bean_suggestions')
+      .select('*')
+      .order('created_at', { ascending: false }),
+  )
+  return mapMany(rows, beanSuggestionFromDb)
+}
+
+export const getUserBeanSuggestions = async (userId) => {
+  const rows = unwrap(
+    await supabase
+      .from('bean_suggestions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false }),
+  )
+  return mapMany(rows, beanSuggestionFromDb)
+}
+
+export const addBeanSuggestion = async (suggestion) => {
+  const row = unwrap(
+    await supabase
+      .from('bean_suggestions')
+      .insert(beanSuggestionToDb(suggestion))
+      .select()
+      .single(),
+  )
+  return beanSuggestionFromDb(row)
+}
+
+export const updateBeanSuggestion = async (id, updates) => {
+  const row = unwrap(
+    await supabase
+      .from('bean_suggestions')
+      .update(beanSuggestionToDb(updates))
+      .eq('id', id)
+      .select()
+      .single(),
+  )
+  return beanSuggestionFromDb(row)
+}
+
+export const deleteBeanSuggestion = async (id) =>
+  unwrap(await supabase.from('bean_suggestions').delete().eq('id', id))
 
 // ---------- Profiles ----------
 // Auth identity now lives in Supabase Auth; profiles holds the

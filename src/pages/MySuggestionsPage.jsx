@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getBeans, getUserSuggestions } from '../api.js'
+import {
+  getBeans,
+  getUserBeanSuggestions,
+  getUserSuggestions,
+} from '../api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useLanguage } from '../context/LanguageContext.jsx'
 import { uiStrings } from '../utils/uiStrings.js'
@@ -18,6 +22,7 @@ export default function MySuggestionsPage() {
   const t = uiStrings[language]
 
   const [items, setItems] = useState([])
+  const [beanItems, setBeanItems] = useState([])
   const [beans, setBeans] = useState([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -26,10 +31,15 @@ export default function MySuggestionsPage() {
     let cancelled = false
     if (!user) return
     setLoading(true)
-    Promise.all([getUserSuggestions(user.id), getBeans()])
-      .then(([s, b]) => {
+    Promise.all([
+      getUserSuggestions(user.id),
+      getUserBeanSuggestions(user.id),
+      getBeans(),
+    ])
+      .then(([s, bs, b]) => {
         if (cancelled) return
         setItems(s)
+        setBeanItems(bs)
         setBeans(b)
       })
       .catch((e) => {
@@ -133,6 +143,50 @@ export default function MySuggestionsPage() {
               )
             })}
           </ul>
+        )}
+
+        {!loading && beanItems.length > 0 && (
+          <div className="mt-10">
+            <h2 className="font-display text-2xl sm:text-3xl text-espresso mb-4">
+              {t.beanSuggestions}
+            </h2>
+            <ul className="space-y-3">
+              {beanItems.map((s) => (
+                <li
+                  key={s.id}
+                  className="bg-white/70 border border-oatmeal rounded-card shadow-card p-4 sm:p-5"
+                >
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {s.imageUrl ? (
+                      <img
+                        src={s.imageUrl}
+                        alt=""
+                        className="w-14 h-14 rounded-card object-cover border border-oatmeal"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-card bg-oatmeal/40" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display text-lg sm:text-xl text-espresso truncate">
+                        {s.name}
+                      </p>
+                      <p className="text-xs text-espresso/55">
+                        {new Date(s.createdAt).toLocaleDateString()}
+                        {s.brew ? ' · recipe included' : ''}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-[11px] uppercase tracking-wider font-semibold px-2.5 py-1 rounded-full border ${statusPillClass(
+                        s.status,
+                      )}`}
+                    >
+                      {t[s.status] ?? s.status}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </main>
     </div>

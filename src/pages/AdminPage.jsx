@@ -3,15 +3,18 @@ import { Link } from 'react-router-dom'
 import {
   addBean,
   deleteBean,
+  deleteBeanSuggestion,
   deleteComment,
   deleteRating,
   deleteSuggestion,
   getBeans,
+  getBeanSuggestions,
   getComments,
   getRatings,
   getSuggestions,
   getUsers,
   updateBean,
+  updateBeanSuggestion,
   updateSuggestion,
 } from '../api.js'
 import { supabase } from '../supabaseClient.js'
@@ -79,7 +82,9 @@ export default function AdminPage() {
   const [comments, setComments] = useState([])
   const [users, setUsers] = useState([])
   const [suggestions, setSuggestions] = useState([])
+  const [beanSuggestions, setBeanSuggestions] = useState([])
   const [showResolved, setShowResolved] = useState(false)
+  const [showResolvedBeans, setShowResolvedBeans] = useState(false)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
 
@@ -92,16 +97,18 @@ export default function AdminPage() {
     setLoading(true)
     setErr('')
     try {
-      const [b, c, u, s] = await Promise.all([
+      const [b, c, u, s, bs] = await Promise.all([
         getBeans(),
         getComments(),
         getUsers(),
         getSuggestions(),
+        getBeanSuggestions(),
       ])
       setBeans(b)
       setComments(c)
       setUsers(u)
       setSuggestions(s)
+      setBeanSuggestions(bs)
     } catch (e) {
       setErr(e.message || 'Failed to load admin data.')
     } finally {
@@ -357,6 +364,59 @@ export default function AdminPage() {
 
   const pendingSuggestions = suggestions.filter((s) => s.status === 'pending')
   const resolvedSuggestions = suggestions.filter((s) => s.status !== 'pending')
+  const pendingBeanSuggestions = beanSuggestions.filter(
+    (s) => s.status === 'pending',
+  )
+  const resolvedBeanSuggestions = beanSuggestions.filter(
+    (s) => s.status !== 'pending',
+  )
+
+  const acceptBeanSuggestion = async (s) => {
+    try {
+      const id = slugify(s.name)
+      const payload = {
+        id,
+        name: s.name,
+        origin: s.origin || '',
+        flag: '',
+        variety: s.variety || '',
+        elevation: s.elevation || '',
+        processing: s.processing || 'Washed',
+        roastLevel: s.roastLevel || 'Light',
+        description: s.description || '',
+        roastery_logo_url: s.imageUrl || null,
+        brew: s.brew || {
+          waterTemp: '',
+          totalTime: '',
+          ratio: '',
+          pours: [],
+        },
+      }
+      await addBean(payload)
+      await updateBeanSuggestion(s.id, { status: 'accepted' })
+      await refresh()
+    } catch (e) {
+      setErr(e.message || 'Could not accept bean suggestion.')
+    }
+  }
+
+  const rejectBeanSuggestion = async (s) => {
+    try {
+      await updateBeanSuggestion(s.id, { status: 'rejected' })
+      await refresh()
+    } catch (e) {
+      setErr(e.message || 'Could not reject bean suggestion.')
+    }
+  }
+
+  const handleDeleteBeanSuggestion = async (id) => {
+    try {
+      await deleteBeanSuggestion(id)
+      await refresh()
+    } catch (e) {
+      setErr(e.message || 'Delete failed.')
+    }
+  }
 
   const groupByBean = (list) => {
     const groups = new Map()
@@ -828,6 +888,174 @@ export default function AdminPage() {
                             </li>
                           )
                         })}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Section D — Bean Suggestions */}
+            <section>
+              <SectionHeader subtitle="Approve new beans submitted by the community.">
+                Bean Suggestions
+              </SectionHeader>
+
+              <div className="bg-white/70 border border-oatmeal rounded-card shadow-card overflow-hidden">
+                {pendingBeanSuggestions.length === 0 ? (
+                  <p className="p-5 text-sm text-espresso/55 italic">
+                    No pending bean suggestions.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-oatmeal">
+                    {pendingBeanSuggestions.map((s) => (
+                      <li key={s.id} className="p-4 sm:p-5">
+                        <div className="flex items-start gap-4">
+                          {s.imageUrl ? (
+                            <img
+                              src={s.imageUrl}
+                              alt=""
+                              className="w-20 h-20 rounded-card object-cover border border-oatmeal shrink-0"
+                            />
+                          ) : (
+                            <div className="w-20 h-20 rounded-card bg-oatmeal/40 shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <span className="text-sm text-espresso/70">
+                                <strong className="text-espresso">
+                                  {s.userName || 'Unknown'}
+                                </strong>
+                                <span className="text-espresso/30 mx-1.5">·</span>
+                                <time dateTime={s.createdAt}>
+                                  {new Date(s.createdAt).toLocaleString(undefined, {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                  })}
+                                </time>
+                              </span>
+                              {s.brew && (
+                                <span className="text-[11px] uppercase tracking-wider font-semibold px-2.5 py-1 rounded-full border bg-gold/20 text-espresso border-gold/40">
+                                  Recipe included
+                                </span>
+                              )}
+                            </div>
+                            <p className="font-display text-lg sm:text-xl text-espresso mt-1">
+                              {s.name}
+                            </p>
+                            <p className="text-xs text-espresso/65 mt-1">
+                              {[s.origin, s.variety, s.elevation, s.processing, s.roastLevel]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </p>
+                            {s.description && (
+                              <p className="text-sm text-espresso/75 mt-2 whitespace-pre-wrap">
+                                {s.description}
+                              </p>
+                            )}
+                            {s.brew && (
+                              <div className="mt-3 bg-cream/60 border border-oatmeal rounded-card p-3 text-xs text-espresso/75">
+                                <p className="mb-2">
+                                  {s.brew.waterTemp} · {s.brew.ratio} · {s.brew.totalTime}
+                                </p>
+                                {Array.isArray(s.brew.pours) && s.brew.pours.length > 0 && (
+                                  <ol className="space-y-1">
+                                    {s.brew.pours.map((p, i) => (
+                                      <li key={i}>
+                                        <span className="font-semibold text-espresso">
+                                          {i + 1}. {p.label}
+                                        </span>{' '}
+                                        — <span className="text-gold font-semibold">{p.volume}</span>
+                                        {p.notes && <> · {p.notes}</>}
+                                      </li>
+                                    ))}
+                                  </ol>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex items-center gap-2 flex-wrap">
+                          <button
+                            onClick={() => acceptBeanSuggestion(s)}
+                            className="rounded-full bg-espresso text-cream px-4 py-1.5 text-xs font-semibold hover:bg-gold transition-colors"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => rejectBeanSuggestion(s)}
+                            className="rounded-full border border-red-200 text-red-700 px-4 py-1.5 text-xs font-semibold hover:bg-red-50 transition-colors"
+                          >
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBeanSuggestion(s.id)}
+                            className="rounded-full border border-oatmeal text-espresso px-4 py-1.5 text-xs font-semibold hover:bg-cream/60 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowResolvedBeans((v) => !v)}
+                  className="text-sm font-semibold text-espresso/70 hover:text-espresso underline-offset-2 hover:underline"
+                >
+                  {showResolvedBeans ? 'Hide' : 'Show'} accepted &amp; rejected ({resolvedBeanSuggestions.length})
+                </button>
+                {showResolvedBeans && (
+                  <div className="mt-3 bg-white/70 border border-oatmeal rounded-card shadow-card overflow-hidden">
+                    {resolvedBeanSuggestions.length === 0 ? (
+                      <p className="p-5 text-sm text-espresso/55 italic">
+                        Nothing here yet.
+                      </p>
+                    ) : (
+                      <ul className="divide-y divide-oatmeal">
+                        {resolvedBeanSuggestions.map((s) => (
+                          <li key={s.id} className="p-4 sm:p-5 flex items-center gap-3 flex-wrap">
+                            {s.imageUrl ? (
+                              <img
+                                src={s.imageUrl}
+                                alt=""
+                                className="w-12 h-12 rounded-card object-cover border border-oatmeal"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-card bg-oatmeal/40" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-espresso truncate">
+                                {s.name}
+                              </p>
+                              <p className="text-xs text-espresso/55">
+                                {s.userName} · {new Date(s.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <span
+                              className={`text-[11px] uppercase tracking-wider font-semibold px-2.5 py-1 rounded-full border ${
+                                s.status === 'accepted'
+                                  ? 'bg-green-100 text-green-800 border-green-200'
+                                  : 'bg-red-100 text-red-800 border-red-200'
+                              }`}
+                            >
+                              {s.status}
+                            </span>
+                            <button
+                              onClick={() => handleDeleteBeanSuggestion(s.id)}
+                              className="rounded-full border border-red-200 text-red-700 px-3 py-1 text-xs font-semibold hover:bg-red-50 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </li>
+                        ))}
                       </ul>
                     )}
                   </div>

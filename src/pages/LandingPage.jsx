@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import BeanCard from '../components/BeanCard.jsx'
+import SuggestBean from '../components/SuggestBean.jsx'
 import V60Logo from '../components/V60Logo.jsx'
 import { beans as seedBeans } from '../data/beans.js'
 import { getBeans } from '../api.js'
@@ -111,6 +112,8 @@ export default function LandingPage() {
             {t.beansCount(beans.length)}
           </span>
         </div>
+
+        <SuggestBean />
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {beans.map((bean) => (

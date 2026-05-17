@@ -46,10 +46,6 @@ export function AuthProvider({ children }) {
     if (!profile || !profile.password) {
       throw new Error('Invalid email or password')
     }
-    const hashedInput = await hashPassword(password)
-    console.log("Input hash:", hashedInput)
-    console.log("Stored hash:", profile?.password)
-    console.log("Match:", hashedInput === profile?.password)
     const ok = await verifyPassword(password, profile.password)
     if (!ok) throw new Error('Invalid email or password')
 

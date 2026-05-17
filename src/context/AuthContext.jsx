@@ -103,26 +103,34 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = async (email, password) => {
-    const cleanEmail = String(email).trim()
-    // eslint-disable-next-line no-console
-    console.log('Attempting login with:', cleanEmail)
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: cleanEmail,
-      password,
-    })
-    // eslint-disable-next-line no-console
-    console.log('Supabase response:', data, error)
-    if (error) {
+    try {
+      const cleanEmail = String(email).trim()
       // eslint-disable-next-line no-console
-      console.log('Login error details:', JSON.stringify(error))
-      throw new Error(error.message || 'Invalid email or password.')
+      console.log('Attempting login with:', cleanEmail)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      })
+      // eslint-disable-next-line no-console
+      console.log('Supabase response:', data, error)
+      // eslint-disable-next-line no-console
+      console.log('Full auth response:', JSON.stringify({ data, error }))
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.log('Login error details:', JSON.stringify(error))
+        throw new Error(error.message || 'Invalid email or password.')
+      }
+      if (!data?.user) {
+        throw new Error('Login failed — please try again.')
+      }
+      const me = await fetchProfile(data.user)
+      setUser(me)
+      return me
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.log('Login caught error:', err)
+      throw err
     }
-    if (!data?.user) {
-      throw new Error('Login failed — please try again.')
-    }
-    const me = await fetchProfile(data.user)
-    setUser(me)
-    return me
   }
 
   const signup = async (name, email, password) => {

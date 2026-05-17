@@ -103,58 +103,28 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = async (email, password) => {
-    try {
-      const cleanEmail = String(email).trim()
-      // eslint-disable-next-line no-console
-      console.log('Attempting login with:', cleanEmail)
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      })
-      // eslint-disable-next-line no-console
-      console.log('Supabase response:', data, error)
-      // eslint-disable-next-line no-console
-      console.log('Full auth response:', JSON.stringify({ data, error }))
-      if (error) {
-        // eslint-disable-next-line no-console
-        console.log('Login error details:', JSON.stringify(error))
-        throw new Error(error.message || 'Invalid email or password.')
-      }
-      if (!data?.user) {
-        throw new Error('Login failed — please try again.')
-      }
-      const me = await fetchProfile(data.user)
-      setUser(me)
-      return me
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.log('Login caught error:', err)
-      throw err
-    }
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: String(email).trim(),
+      password,
+    })
+    if (error) throw new Error(error.message)
+    const me = await fetchProfile(data.user)
+    setUser(me)
+    return me
   }
 
   const signup = async (name, email, password) => {
     const cleanEmail = String(email).trim()
     const cleanName = String(name).trim()
 
-    // eslint-disable-next-line no-console
-    console.log('Attempting login with:', cleanEmail)
     const { data, error } = await supabase.auth.signUp({
       email: cleanEmail,
       password,
       options: { data: { name: cleanName } },
     })
-    // eslint-disable-next-line no-console
-    console.log('Supabase response:', data, error)
-    if (error) {
-      // eslint-disable-next-line no-console
-      console.log('Login error details:', JSON.stringify(error))
-      throw new Error(error.message || 'Sign up failed.')
-    }
+    if (error) throw new Error(error.message)
     const authUser = data?.user
-    if (!authUser) {
-      throw new Error('Sign up did not return a user — please try again.')
-    }
+    if (!authUser) throw new Error('Sign up did not return a user.')
 
     const { error: insertError } = await supabase.from('profiles').insert({
       id: authUser.id,
@@ -162,9 +132,7 @@ export function AuthProvider({ children }) {
       email: cleanEmail,
       role: 'user',
     })
-    if (insertError) {
-      throw new Error(insertError.message || 'Could not create your profile.')
-    }
+    if (insertError) throw new Error(insertError.message)
 
     const me = {
       id: authUser.id,

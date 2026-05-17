@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import bcrypt from 'bcryptjs'
 import { supabase } from '../supabaseClient.js'
 import { seedBeansIfEmpty } from '../api.js'
+import { hashPassword, verifyPassword } from '../utils/crypto.js'
 
 // NOTE: This auth flow stores bcrypt password hashes in the `profiles`
 // table and verifies them client-side. For that to work the RLS policy
@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
     if (!profile || !profile.password) {
       throw new Error('Invalid email or password')
     }
-    const ok = await bcrypt.compare(password, profile.password)
+    const ok = await verifyPassword(password, profile.password)
     if (!ok) throw new Error('Invalid email or password')
 
     const me = {
@@ -73,7 +73,7 @@ export function AuthProvider({ children }) {
       throw new Error('An account with that email already exists.')
     }
 
-    const hash = await bcrypt.hash(password, 10)
+    const hash = await hashPassword(password)
     const id = crypto.randomUUID()
 
     const { error: insertError } = await supabase.from('profiles').insert({

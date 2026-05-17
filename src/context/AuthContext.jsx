@@ -102,15 +102,27 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: String(email).trim(),
-      password,
-    })
-    if (error) throw new Error(error.message)
-    const me = await fetchProfile(data.user)
-    setUser(me)
-    return me
+  async function login(email, password) {
+    console.log("Login start")
+    try {
+      const result = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout after 5s")), 5000))
+      ])
+      console.log("Login result:", JSON.stringify(result))
+      const { data, error } = result
+      if (error) throw error
+      if (data?.user) {
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
+        console.log("Profile:", JSON.stringify(profile))
+        const userData = { id: data.user.id, name: profile?.name, email: data.user.email, role: profile?.role || 'user' }
+        setUser(userData)
+        localStorage.setItem('v60_user', JSON.stringify(userData))
+      }
+    } catch(e) {
+      console.log("Login error:", e.message)
+      throw e
+    }
   }
 
   const signup = async (name, email, password) => {

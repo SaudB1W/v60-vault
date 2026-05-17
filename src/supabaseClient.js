@@ -6,7 +6,7 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 // eslint-disable-next-line no-console
 console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL)
 // eslint-disable-next-line no-console
-console.log('Supabase Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY)
+console.log("Supabase Key first 20 chars:", import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 20))
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 

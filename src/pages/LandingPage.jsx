@@ -4,7 +4,7 @@ import BeanCard from '../components/BeanCard.jsx'
 import SuggestBean from '../components/SuggestBean.jsx'
 import V60Logo from '../components/V60Logo.jsx'
 import { beans as seedBeans } from '../data/beans.js'
-import { getBeans, getFavorites } from '../api.js'
+import { getBeans } from '../api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useLanguage } from '../context/LanguageContext.jsx'
 import { uiStrings } from '../utils/uiStrings.js'
@@ -15,7 +15,6 @@ export default function LandingPage() {
   const { language, toggleLanguage } = useLanguage()
   const t = uiStrings[language]
   const [beans, setBeans] = useState(seedBeans)
-  const [favoriteSet, setFavoriteSet] = useState(new Set())
   const [mostLovedIds, setMostLovedIds] = useState([])
 
   useEffect(() => {
@@ -33,25 +32,6 @@ export default function LandingPage() {
       cancelled = true
     }
   }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    if (!user) {
-      setFavoriteSet(new Set())
-      return
-    }
-    getFavorites(user.id)
-      .then((rows) => {
-        if (cancelled) return
-        setFavoriteSet(new Set(rows.map((f) => String(f.beanId))))
-      })
-      .catch(() => {
-        /* silent */
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [user?.id])
 
   useEffect(() => {
     let cancelled = false
@@ -75,15 +55,6 @@ export default function LandingPage() {
       cancelled = true
     }
   }, [])
-
-  const handleFavoriteChange = (beanId, next) => {
-    setFavoriteSet((prev) => {
-      const set = new Set(prev)
-      if (next) set.add(String(beanId))
-      else set.delete(String(beanId))
-      return set
-    })
-  }
 
   const mostLovedBeans = mostLovedIds
     .map((id) => beans.find((b) => String(b.id) === id))
@@ -177,12 +148,7 @@ export default function LandingPage() {
             </h2>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {mostLovedBeans.map((bean) => (
-                <BeanCard
-                  key={`loved-${bean.id}`}
-                  bean={bean}
-                  isFavorite={favoriteSet.has(String(bean.id))}
-                  onFavoriteChange={handleFavoriteChange}
-                />
+                <BeanCard key={`loved-${bean.id}`} bean={bean} />
               ))}
             </div>
           </section>
@@ -201,12 +167,7 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {beans.map((bean) => (
-            <BeanCard
-              key={bean.id}
-              bean={bean}
-              isFavorite={favoriteSet.has(String(bean.id))}
-              onFavoriteChange={handleFavoriteChange}
-            />
+            <BeanCard key={bean.id} bean={bean} />
           ))}
         </div>
       </main>

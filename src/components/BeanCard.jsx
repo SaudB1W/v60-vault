@@ -3,12 +3,7 @@ import { Link } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext.jsx'
 import { uiStrings } from '../utils/uiStrings.js'
 import { translateBean } from '../utils/translate.js'
-import {
-  addFavorite,
-  getBeanStats,
-  removeFavorite,
-} from '../api.js'
-import { useAuth } from '../context/AuthContext.jsx'
+import { getBeanStats } from '../api.js'
 
 const roastStyles = {
   Light: 'bg-cream text-espresso border-lightbrown/60',
@@ -18,21 +13,14 @@ const roastStyles = {
   Dark: 'bg-espresso text-cream border-espresso',
 }
 
-export default function BeanCard({ bean, isFavorite = false, onFavoriteChange }) {
+export default function BeanCard({ bean }) {
   const { language } = useLanguage()
-  const { user } = useAuth()
   const t = uiStrings[language]
   const roastClass = roastStyles[bean.roastLevel] ?? roastStyles.Medium
 
   const [displayBean, setDisplayBean] = useState(bean)
   const [translating, setTranslating] = useState(false)
   const [stats, setStats] = useState(null)
-  const [liked, setLiked] = useState(isFavorite)
-  const [toggling, setToggling] = useState(false)
-
-  useEffect(() => {
-    setLiked(isFavorite)
-  }, [isFavorite])
 
   useEffect(() => {
     let cancelled = false
@@ -67,66 +55,11 @@ export default function BeanCard({ bean, isFavorite = false, onFavoriteChange })
     }
   }, [bean.id])
 
-  const handleToggleFavorite = async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!user || toggling) return
-    const next = !liked
-    setLiked(next)
-    setToggling(true)
-    try {
-      if (next) {
-        await addFavorite(user.id, bean.id)
-      } else {
-        await removeFavorite(user.id, bean.id)
-      }
-      setStats((prev) =>
-        prev
-          ? {
-              ...prev,
-              favoritesCount: Math.max(
-                0,
-                (prev.favoritesCount || 0) + (next ? 1 : -1),
-              ),
-            }
-          : prev,
-      )
-      if (onFavoriteChange) onFavoriteChange(bean.id, next)
-    } catch {
-      setLiked(!next)
-    } finally {
-      setToggling(false)
-    }
-  }
-
   return (
     <Link
       to={`/bean/${bean.id}`}
       className="bean-card group block bg-white/70 backdrop-blur-sm border border-oatmeal rounded-card shadow-card hover:shadow-cardHover overflow-hidden relative"
     >
-      {user && (
-        <button
-          type="button"
-          onClick={handleToggleFavorite}
-          aria-label={liked ? 'Remove from favorites' : 'Add to favorites'}
-          aria-pressed={liked}
-          className={`absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm border border-oatmeal shadow-sm flex items-center justify-center transition-transform duration-200 ease-out hover:scale-110 ${
-            liked ? 'scale-110' : 'scale-100'
-          }`}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="w-5 h-5 transition-colors duration-200"
-            fill={liked ? '#dc2626' : 'none'}
-            stroke={liked ? '#dc2626' : '#3D2B1F'}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-          </svg>
-        </button>
-      )}
       <div className="p-5 sm:p-6 flex flex-col h-full">
         {bean.roastery_logo_url && (
           <div className="flex justify-center mb-3">

@@ -84,12 +84,7 @@ export default function MyFavoritesPage() {
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {beans.map((bean) => (
-              <BeanCard
-                key={bean.id}
-                bean={bean}
-                isFavorite={favoriteSet.has(String(bean.id))}
-                onFavoriteChange={handleFavoriteChange}
-              />
+              <BeanCard key={bean.id} bean={bean} />
             ))}
           </div>
         )}

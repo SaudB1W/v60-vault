@@ -54,6 +54,10 @@ export const uiStrings = {
     beanSuggestions: 'Bean Suggestions',
     beanSuggestionSubmitted:
       'Your bean suggestion has been submitted for review',
+    myFavorites: 'My Favorites',
+    mostLoved: 'Most Loved Beans',
+    noFavorites: 'No favorites yet — heart a bean to save it here',
+    noRatings: 'No ratings yet',
   },
   ar: {
     viewRecipe: 'عرض الوصفة',
@@ -109,5 +113,9 @@ export const uiStrings = {
     submitBeanSuggestion: 'إرسال اقتراح الحبة',
     beanSuggestions: 'اقتراحات الحبوب',
     beanSuggestionSubmitted: 'تم إرسال اقتراح الحبة للمراجعة',
+    myFavorites: 'المفضلة',
+    mostLoved: 'الحبوب الأكثر حباً',
+    noFavorites: 'لا مفضلات بعد — اضغط على القلب لحفظ الحبة',
+    noRatings: 'لا تقييمات بعد',
   },
 }

@@ -238,6 +238,70 @@ export const updateSuggestion = async (id, updates) => {
 export const deleteSuggestion = async (id) =>
   unwrap(await supabase.from('suggestions').delete().eq('id', id))
 
+// ---------- Favorites ----------
+export const getFavorites = async (userId) => {
+  const rows = unwrap(
+    await supabase
+      .from('favorites')
+      .select('*, beans(*)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false }),
+  )
+  return rows.map((r) => ({
+    id: r.id,
+    userId: r.user_id,
+    beanId: r.bean_id,
+    createdAt: r.created_at,
+    bean: r.beans ? beanFromDb(r.beans) : null,
+  }))
+}
+
+export const addFavorite = async (userId, beanId) =>
+  unwrap(
+    await supabase
+      .from('favorites')
+      .insert({ user_id: userId, bean_id: beanId }),
+  )
+
+export const removeFavorite = async (userId, beanId) =>
+  unwrap(
+    await supabase
+      .from('favorites')
+      .delete()
+      .eq('user_id', userId)
+      .eq('bean_id', beanId),
+  )
+
+export const getBeanStats = async (beanId) => {
+  const [ratingsRes, commentsRes, favoritesRes] = await Promise.all([
+    supabase.from('ratings').select('stars').eq('bean_id', beanId),
+    supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('bean_id', beanId),
+    supabase
+      .from('favorites')
+      .select('*', { count: 'exact', head: true })
+      .eq('bean_id', beanId),
+  ])
+  if (ratingsRes.error) throw ratingsRes.error
+  if (commentsRes.error) throw commentsRes.error
+  if (favoritesRes.error) throw favoritesRes.error
+  const ratings = ratingsRes.data ?? []
+  const ratingsCount = ratings.length
+  const averageStars =
+    ratingsCount === 0
+      ? 0
+      : ratings.reduce((sum, r) => sum + (Number(r.stars) || 0), 0) /
+        ratingsCount
+  return {
+    ratingsCount,
+    averageStars,
+    commentsCount: commentsRes.count ?? 0,
+    favoritesCount: favoritesRes.count ?? 0,
+  }
+}
+
 // ---------- Bean suggestions ----------
 export const getBeanSuggestions = async () => {
   const rows = unwrap(

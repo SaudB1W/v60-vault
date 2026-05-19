@@ -4,16 +4,19 @@ import BeanCard from '../components/BeanCard.jsx'
 import SuggestBean from '../components/SuggestBean.jsx'
 import V60Logo from '../components/V60Logo.jsx'
 import { beans as seedBeans } from '../data/beans.js'
-import { getBeans } from '../api.js'
+import { getBeans, getFavorites } from '../api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useLanguage } from '../context/LanguageContext.jsx'
 import { uiStrings } from '../utils/uiStrings.js'
+import { supabase } from '../supabaseClient.js'
 
 export default function LandingPage() {
   const { user, logout } = useAuth()
   const { language, toggleLanguage } = useLanguage()
   const t = uiStrings[language]
   const [beans, setBeans] = useState(seedBeans)
+  const [favoriteSet, setFavoriteSet] = useState(new Set())
+  const [mostLovedIds, setMostLovedIds] = useState([])
 
   useEffect(() => {
     let cancelled = false
@@ -30,6 +33,61 @@ export default function LandingPage() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!user) {
+      setFavoriteSet(new Set())
+      return
+    }
+    getFavorites(user.id)
+      .then((rows) => {
+        if (cancelled) return
+        setFavoriteSet(new Set(rows.map((f) => String(f.beanId))))
+      })
+      .catch(() => {
+        /* silent */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    let cancelled = false
+    supabase
+      .from('favorites')
+      .select('bean_id')
+      .then(({ data }) => {
+        if (cancelled || !Array.isArray(data)) return
+        const counts = new Map()
+        data.forEach((row) => {
+          const id = String(row.bean_id)
+          counts.set(id, (counts.get(id) || 0) + 1)
+        })
+        const sorted = Array.from(counts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([id]) => id)
+        setMostLovedIds(sorted)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleFavoriteChange = (beanId, next) => {
+    setFavoriteSet((prev) => {
+      const set = new Set(prev)
+      if (next) set.add(String(beanId))
+      else set.delete(String(beanId))
+      return set
+    })
+  }
+
+  const mostLovedBeans = mostLovedIds
+    .map((id) => beans.find((b) => String(b.id) === id))
+    .filter(Boolean)
 
   return (
     <div className="min-h-screen bg-cream">
@@ -56,12 +114,20 @@ export default function LandingPage() {
                     {t.adminPanel}
                   </Link>
                 ) : (
-                  <Link
-                    to="/my-suggestions"
-                    className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
-                  >
-                    {t.mySuggestions}
-                  </Link>
+                  <>
+                    <Link
+                      to="/my-favorites"
+                      className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
+                    >
+                      {t.myFavorites}
+                    </Link>
+                    <Link
+                      to="/my-suggestions"
+                      className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
+                    >
+                      {t.mySuggestions}
+                    </Link>
+                  </>
                 )}
                 <button
                   onClick={toggleLanguage}
@@ -104,6 +170,24 @@ export default function LandingPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
+        {mostLovedBeans.length > 0 && (
+          <section className="mb-10 sm:mb-14">
+            <h2 className="font-display text-2xl sm:text-3xl text-espresso mb-6 sm:mb-8">
+              {t.mostLoved}
+            </h2>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {mostLovedBeans.map((bean) => (
+                <BeanCard
+                  key={`loved-${bean.id}`}
+                  bean={bean}
+                  isFavorite={favoriteSet.has(String(bean.id))}
+                  onFavoriteChange={handleFavoriteChange}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className="flex items-baseline justify-between mb-6 sm:mb-8">
           <h2 className="font-display text-2xl sm:text-3xl text-espresso">
             {t.theCollection}
@@ -117,7 +201,12 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {beans.map((bean) => (
-            <BeanCard key={bean.id} bean={bean} />
+            <BeanCard
+              key={bean.id}
+              bean={bean}
+              isFavorite={favoriteSet.has(String(bean.id))}
+              onFavoriteChange={handleFavoriteChange}
+            />
           ))}
         </div>
       </main>

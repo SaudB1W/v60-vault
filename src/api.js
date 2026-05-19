@@ -80,8 +80,18 @@ const BEAN_SUGGESTION_FROM_DB = {
 
 const stripNonBeanColumns = (b) => {
   if (b == null) return b
+  // The beans table only has roastery_id (text) — the joined roastery
+  // object comes back from select queries and must never be sent back to
+  // insert/update. Strip both the aliased "roastery" and the raw
+  // "roasteries" relation name to cover either join shape.
   // eslint-disable-next-line no-unused-vars
-  const { rating: _r, comments: _c, roastery: _ro, ...rest } = b
+  const {
+    rating: _r,
+    comments: _c,
+    roastery: _ro,
+    roasteries: _ros,
+    ...rest
+  } = b
   return rest
 }
 const beanToDb = (b) => renameKeys(stripNonBeanColumns(b), BEAN_TO_DB)

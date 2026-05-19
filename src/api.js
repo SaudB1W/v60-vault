@@ -137,22 +137,18 @@ export const getBeansByRoastery = async (roasteryId) => {
 }
 
 export const addBean = async (bean) => {
-  const row = unwrap(
-    await supabase.from('beans').insert(beanToDb(bean)).select().single(),
-  )
-  return beanFromDb(row)
+  const { error } = await supabase.from('beans').insert(beanToDb(bean))
+  if (error) throw error
+  return bean
 }
 
 export const updateBean = async (id, bean) => {
-  const row = unwrap(
-    await supabase
-      .from('beans')
-      .update(beanToDb(bean))
-      .eq('id', id)
-      .select()
-      .single(),
-  )
-  return beanFromDb(row)
+  const { error } = await supabase
+    .from('beans')
+    .update(beanToDb(bean))
+    .eq('id', id)
+  if (error) throw error
+  return { ...bean, id }
 }
 
 export const deleteBean = async (id) =>

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { beans } from '../data/beans.js'
-import { getBean } from '../api.js'
+import { addFavorite, getBean, getFavorites, removeFavorite } from '../api.js'
 import V60Logo from '../components/V60Logo.jsx'
 import StarRating from '../components/StarRating.jsx'
 import Comments from '../components/Comments.jsx'
 import CommunityRecipes from '../components/CommunityRecipes.jsx'
 import SuggestRecipe from '../components/SuggestRecipe.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 import { useLanguage } from '../context/LanguageContext.jsx'
 import { uiStrings } from '../utils/uiStrings.js'
 import { translateBean } from '../utils/translate.js'
@@ -36,11 +37,14 @@ function StatBlock({ label, value, sub }) {
 export default function BeanDetailPage() {
   const { id } = useParams()
   const { language } = useLanguage()
+  const { user } = useAuth()
   const t = uiStrings[language]
   const [bean, setBean] = useState(() => beans.find((b) => b.id === id) ?? null)
   const [displayBean, setDisplayBean] = useState(bean)
   const [loading, setLoading] = useState(true)
   const [translating, setTranslating] = useState(false)
+  const [liked, setLiked] = useState(false)
+  const [favToggling, setFavToggling] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -59,6 +63,43 @@ export default function BeanDetailPage() {
       cancelled = true
     }
   }, [id])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!user || !bean) {
+      setLiked(false)
+      return
+    }
+    getFavorites(user.id)
+      .then((rows) => {
+        if (cancelled) return
+        setLiked(rows.some((f) => String(f.beanId) === String(bean.id)))
+      })
+      .catch(() => {
+        /* silent */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id, bean?.id])
+
+  const toggleFavorite = async () => {
+    if (!user || !bean || favToggling) return
+    const next = !liked
+    setLiked(next)
+    setFavToggling(true)
+    try {
+      if (next) {
+        await addFavorite(user.id, bean.id)
+      } else {
+        await removeFavorite(user.id, bean.id)
+      }
+    } catch {
+      setLiked(!next)
+    } finally {
+      setFavToggling(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -252,6 +293,28 @@ export default function BeanDetailPage() {
             How did the cup land for you? Saved on this device.
           </p>
           <StarRating beanId={bean.id} />
+          {user && (
+            <button
+              type="button"
+              onClick={toggleFavorite}
+              disabled={favToggling}
+              aria-pressed={liked}
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-espresso text-cream px-5 py-2.5 text-sm font-semibold tracking-wide hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="w-4 h-4 transition-colors duration-200"
+                fill={liked ? '#dc2626' : 'none'}
+                stroke={liked ? '#dc2626' : 'currentColor'}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+              {liked ? t.saved : t.saveToFavorites}
+            </button>
+          )}
         </section>
 
         {/* Comments */}

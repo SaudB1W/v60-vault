@@ -58,6 +58,8 @@ export const uiStrings = {
     mostLoved: 'Most Loved Beans',
     noFavorites: 'No favorites yet — heart a bean to save it here',
     noRatings: 'No ratings yet',
+    saveToFavorites: 'Save to Favorites',
+    saved: 'Saved',
   },
   ar: {
     viewRecipe: 'عرض الوصفة',
@@ -117,5 +119,7 @@ export const uiStrings = {
     mostLoved: 'الحبوب الأكثر حباً',
     noFavorites: 'لا مفضلات بعد — اضغط على القلب لحفظ الحبة',
     noRatings: 'لا تقييمات بعد',
+    saveToFavorites: 'حفظ في المفضلة',
+    saved: 'تم الحفظ',
   },
 }

@@ -4,7 +4,7 @@ import BeanCard from '../components/BeanCard.jsx'
 import SuggestBean from '../components/SuggestBean.jsx'
 import V60Logo from '../components/V60Logo.jsx'
 import { beans as seedBeans } from '../data/beans.js'
-import { getBeanStats, getBeans } from '../api.js'
+import { getBeanStats, getBeans, getRoasteries } from '../api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useLanguage } from '../context/LanguageContext.jsx'
 import { uiStrings } from '../utils/uiStrings.js'
@@ -18,6 +18,7 @@ export default function LandingPage() {
   const t = uiStrings[language]
   const [beans, setBeans] = useState(seedBeans)
   const [mostLovedIds, setMostLovedIds] = useState([])
+  const [roasteries, setRoasteries] = useState([])
   const [statsById, setStatsById] = useState({})
   const [search, setSearch] = useState('')
   const [roastFilter, setRoastFilter] = useState('All')
@@ -57,6 +58,20 @@ export default function LandingPage() {
           .slice(0, 3)
           .map(([id]) => id)
         setMostLovedIds(sorted)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    getRoasteries()
+      .then((rows) => {
+        if (!cancelled && Array.isArray(rows)) setRoasteries(rows)
+      })
+      .catch(() => {
+        /* silent */
       })
     return () => {
       cancelled = true
@@ -365,6 +380,50 @@ export default function LandingPage() {
             <BeanCard key={bean.id} bean={bean} />
           ))}
         </div>
+
+        {roasteries.length > 0 && (
+          <section className="mt-12 sm:mt-16">
+            <h2 className="font-display text-2xl sm:text-3xl text-espresso mb-6 sm:mb-8">
+              {t.ourRoasteries}
+            </h2>
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-1 px-1">
+              {roasteries.map((r) => {
+                const count = beans.filter(
+                  (b) => String(b.roastery_id) === String(r.id),
+                ).length
+                return (
+                  <Link
+                    key={r.id}
+                    to={`/roastery/${r.id}`}
+                    className="shrink-0 w-48 bg-white/70 border border-oatmeal rounded-card shadow-card hover:shadow-cardHover transition-shadow flex items-center gap-3 p-3"
+                    style={{ borderLeft: `4px solid ${r.color || '#3D2B1F'}` }}
+                  >
+                    {r.logo_url ? (
+                      <img
+                        src={r.logo_url}
+                        alt=""
+                        className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm shrink-0"
+                      />
+                    ) : (
+                      <div
+                        className="w-12 h-12 rounded-full shrink-0"
+                        style={{ backgroundColor: r.color || '#E8E0D5' }}
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-espresso truncate">
+                        {r.name}
+                      </p>
+                      <p className="text-xs text-espresso/55 tabular-nums">
+                        {t.beanCount(count)}
+                      </p>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          </section>
+        )}
       </main>
 
       <footer className="max-w-6xl mx-auto px-5 sm:px-8 py-10 text-xs text-espresso/50">

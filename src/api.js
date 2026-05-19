@@ -81,7 +81,7 @@ const BEAN_SUGGESTION_FROM_DB = {
 const stripNonBeanColumns = (b) => {
   if (b == null) return b
   // eslint-disable-next-line no-unused-vars
-  const { rating: _r, comments: _c, ...rest } = b
+  const { rating: _r, comments: _c, roastery: _ro, ...rest } = b
   return rest
 }
 const beanToDb = (b) => renameKeys(stripNonBeanColumns(b), BEAN_TO_DB)
@@ -96,16 +96,34 @@ const beanSuggestionToDb = (s) => renameKeys(s, BEAN_SUGGESTION_TO_DB)
 const beanSuggestionFromDb = (r) => renameKeys(r, BEAN_SUGGESTION_FROM_DB)
 
 // ---------- Beans ----------
+const BEANS_WITH_ROASTERY_SELECT = '*, roastery:roasteries(*)'
+
 export const getBeans = async () => {
-  const rows = unwrap(await supabase.from('beans').select('*'))
+  const rows = unwrap(
+    await supabase.from('beans').select(BEANS_WITH_ROASTERY_SELECT),
+  )
   return mapMany(rows, beanFromDb)
 }
 
 export const getBean = async (id) => {
   const row = unwrap(
-    await supabase.from('beans').select('*').eq('id', id).maybeSingle(),
+    await supabase
+      .from('beans')
+      .select(BEANS_WITH_ROASTERY_SELECT)
+      .eq('id', id)
+      .maybeSingle(),
   )
   return beanFromDb(row)
+}
+
+export const getBeansByRoastery = async (roasteryId) => {
+  const rows = unwrap(
+    await supabase
+      .from('beans')
+      .select(BEANS_WITH_ROASTERY_SELECT)
+      .eq('roastery_id', roasteryId),
+  )
+  return mapMany(rows, beanFromDb)
 }
 
 export const addBean = async (bean) => {
@@ -349,6 +367,38 @@ export const updateBeanSuggestion = async (id, updates) => {
 
 export const deleteBeanSuggestion = async (id) =>
   unwrap(await supabase.from('bean_suggestions').delete().eq('id', id))
+
+// ---------- Roasteries ----------
+export const getRoasteries = async () =>
+  unwrap(
+    await supabase
+      .from('roasteries')
+      .select('*')
+      .order('name', { ascending: true }),
+  )
+
+export const getRoastery = async (id) =>
+  unwrap(
+    await supabase.from('roasteries').select('*').eq('id', id).maybeSingle(),
+  )
+
+export const addRoastery = async (roastery) =>
+  unwrap(
+    await supabase.from('roasteries').insert(roastery).select().single(),
+  )
+
+export const updateRoastery = async (id, updates) =>
+  unwrap(
+    await supabase
+      .from('roasteries')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single(),
+  )
+
+export const deleteRoastery = async (id) =>
+  unwrap(await supabase.from('roasteries').delete().eq('id', id))
 
 // ---------- Profiles ----------
 // Auth identity now lives in Supabase Auth; profiles holds the

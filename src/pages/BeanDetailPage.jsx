@@ -180,6 +180,23 @@ export default function BeanDetailPage() {
               {(displayBean ?? bean).name}
             </h1>
 
+            {bean.roastery && (
+              <Link
+                to={`/roastery/${bean.roastery.id}`}
+                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-espresso bg-white/80 border rounded-full px-3 py-1.5 hover:bg-white transition-colors"
+                style={{ borderColor: bean.roastery.color || '#E8E0D5' }}
+              >
+                {bean.roastery.logo_url && (
+                  <img
+                    src={bean.roastery.logo_url}
+                    alt=""
+                    className="w-6 h-6 rounded-full object-cover border border-white"
+                  />
+                )}
+                <span>{bean.roastery.name}</span>
+              </Link>
+            )}
+
             <div className="mt-5 flex flex-wrap gap-2">
               <MetaPill>{(displayBean ?? bean).processing}</MetaPill>
               <MetaPill>{bean.roastLevel} roast</MetaPill>

@@ -2,19 +2,24 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   addBean,
+  addRoastery,
   deleteBean,
   deleteBeanSuggestion,
   deleteComment,
   deleteRating,
+  deleteRoastery,
   deleteSuggestion,
   getBeans,
+  getBeansByRoastery,
   getBeanSuggestions,
   getComments,
   getRatings,
+  getRoasteries,
   getSuggestions,
   getUsers,
   updateBean,
   updateBeanSuggestion,
+  updateRoastery,
   updateSuggestion,
 } from '../api.js'
 import { supabase } from '../supabaseClient.js'
@@ -35,6 +40,7 @@ const emptyForm = () => ({
   roastLevel: 'Light',
   description: '',
   roastery_logo_url: null,
+  roasteryId: '',
   brew: {
     waterTemp: '',
     totalTime: '',
@@ -83,8 +89,19 @@ export default function AdminPage() {
   const [users, setUsers] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [beanSuggestions, setBeanSuggestions] = useState([])
+  const [roasteries, setRoasteries] = useState([])
   const [showResolved, setShowResolved] = useState(false)
   const [showResolvedBeans, setShowResolvedBeans] = useState(false)
+
+  const [roasteryForm, setRoasteryForm] = useState({
+    id: '',
+    name: '',
+    color: '#B8966E',
+  })
+  const [roasteryLogoFile, setRoasteryLogoFile] = useState(null)
+  const [editingRoasteryId, setEditingRoasteryId] = useState(null)
+  const [currentRoasteryLogoUrl, setCurrentRoasteryLogoUrl] = useState(null)
+  const [savingRoastery, setSavingRoastery] = useState(false)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
 
@@ -97,18 +114,20 @@ export default function AdminPage() {
     setLoading(true)
     setErr('')
     try {
-      const [b, c, u, s, bs] = await Promise.all([
+      const [b, c, u, s, bs, r] = await Promise.all([
         getBeans(),
         getComments(),
         getUsers(),
         getSuggestions(),
         getBeanSuggestions(),
+        getRoasteries(),
       ])
       setBeans(b)
       setComments(c)
       setUsers(u)
       setSuggestions(s)
       setBeanSuggestions(bs)
+      setRoasteries(r)
     } catch (e) {
       setErr(e.message || 'Failed to load admin data.')
     } finally {
@@ -146,6 +165,7 @@ export default function AdminPage() {
       roastLevel: bean.roastLevel ?? 'Light',
       description: bean.description ?? '',
       roastery_logo_url: bean.roastery_logo_url ?? null,
+      roasteryId: bean.roastery_id ?? '',
       brew: {
         waterTemp: bean.brew?.waterTemp ?? '',
         totalTime: bean.brew?.totalTime ?? '',
@@ -263,6 +283,7 @@ export default function AdminPage() {
         roastLevel: form.roastLevel,
         description,
         roastery_logo_url: roasteryLogoUrl,
+        roastery_id: form.roasteryId || null,
         brew: {
           waterTemp: form.brew.waterTemp.trim(),
           totalTime: form.brew.totalTime.trim(),
@@ -418,6 +439,85 @@ export default function AdminPage() {
     }
   }
 
+  const resetRoasteryForm = () => {
+    setRoasteryForm({ id: '', name: '', color: '#B8966E' })
+    setRoasteryLogoFile(null)
+    setEditingRoasteryId(null)
+    setCurrentRoasteryLogoUrl(null)
+  }
+
+  const startEditRoastery = (r) => {
+    setEditingRoasteryId(r.id)
+    setRoasteryForm({
+      id: r.id,
+      name: r.name ?? '',
+      color: r.color ?? '#B8966E',
+    })
+    setRoasteryLogoFile(null)
+    setCurrentRoasteryLogoUrl(r.logo_url ?? null)
+  }
+
+  const submitRoastery = async (e) => {
+    e.preventDefault()
+    setSavingRoastery(true)
+    setErr('')
+    try {
+      let logoUrl = currentRoasteryLogoUrl
+      if (roasteryLogoFile) {
+        const path = `roastery-${Date.now()}-${roasteryLogoFile.name}`
+        const { error: uploadError } = await supabase.storage
+          .from('roastery-logos')
+          .upload(path, roasteryLogoFile, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: roasteryLogoFile.type || undefined,
+          })
+        if (uploadError) throw uploadError
+        const { data: publicUrlData } = supabase.storage
+          .from('roastery-logos')
+          .getPublicUrl(path)
+        logoUrl = publicUrlData?.publicUrl ?? null
+      }
+
+      const payload = {
+        name: roasteryForm.name.trim(),
+        color: roasteryForm.color,
+        logo_url: logoUrl,
+      }
+
+      if (editingRoasteryId) {
+        await updateRoastery(editingRoasteryId, payload)
+      } else {
+        await addRoastery(payload)
+      }
+      resetRoasteryForm()
+      await refresh()
+    } catch (e2) {
+      setErr(e2.message || 'Could not save roastery.')
+    } finally {
+      setSavingRoastery(false)
+    }
+  }
+
+  const handleDeleteRoastery = async (r) => {
+    if (!window.confirm(`Delete "${r.name}"? Beans linked to it will be unlinked.`)) {
+      return
+    }
+    try {
+      const linked = await getBeansByRoastery(r.id)
+      await Promise.all(
+        linked.map((b) =>
+          updateBean(b.id, { ...b, roastery_id: null }),
+        ),
+      )
+      await deleteRoastery(r.id)
+      if (editingRoasteryId === r.id) resetRoasteryForm()
+      await refresh()
+    } catch (e) {
+      setErr(e.message || 'Delete failed.')
+    }
+  }
+
   const groupByBean = (list) => {
     const groups = new Map()
     list.forEach((s) => {
@@ -549,6 +649,24 @@ export default function AdminPage() {
                     onChange={(v) => updateField('description', v)}
                     rows={3}
                   />
+
+                  <label className="block">
+                    <span className="block text-xs uppercase tracking-[0.18em] text-espresso/60 font-semibold mb-1.5">
+                      Roastery
+                    </span>
+                    <select
+                      value={form.roasteryId}
+                      onChange={(e) => updateField('roasteryId', e.target.value)}
+                      className="w-full rounded-card border border-oatmeal bg-cream/60 px-3 py-2 text-espresso focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition"
+                    >
+                      <option value="">None</option>
+                      {roasteries.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
                   <label className="block">
                     <span className="block text-xs uppercase tracking-[0.18em] text-espresso/60 font-semibold mb-1.5">
@@ -1059,6 +1177,148 @@ export default function AdminPage() {
                       </ul>
                     )}
                   </div>
+                )}
+              </div>
+            </section>
+
+            {/* Section E — Manage Roasteries */}
+            <section>
+              <SectionHeader subtitle="Manage the roasteries that supply your beans.">
+                Manage Roasteries
+              </SectionHeader>
+
+              <div className="bg-white/70 border border-oatmeal rounded-card shadow-card p-5 sm:p-7 mb-8">
+                <h3 className="font-display text-xl text-espresso mb-4">
+                  {editingRoasteryId
+                    ? `Edit "${roasteryForm.name || editingRoasteryId}"`
+                    : 'Add a new roastery'}
+                </h3>
+
+                <form onSubmit={submitRoastery} className="space-y-4">
+                  <Field
+                    label="Name"
+                    value={roasteryForm.name}
+                    onChange={(v) => setRoasteryForm((f) => ({ ...f, name: v }))}
+                    required
+                  />
+
+                  <label className="block">
+                    <span className="block text-xs uppercase tracking-[0.18em] text-espresso/60 font-semibold mb-1.5">
+                      Color
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={roasteryForm.color}
+                        onChange={(e) =>
+                          setRoasteryForm((f) => ({ ...f, color: e.target.value }))
+                        }
+                        className="h-10 w-16 cursor-pointer rounded-card border border-oatmeal bg-cream/60"
+                      />
+                      <span className="text-sm text-espresso/70 tabular-nums">
+                        {roasteryForm.color}
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="block">
+                    <span className="block text-xs uppercase tracking-[0.18em] text-espresso/60 font-semibold mb-1.5">
+                      Logo (optional)
+                    </span>
+                    {currentRoasteryLogoUrl && !roasteryLogoFile && (
+                      <img
+                        src={currentRoasteryLogoUrl}
+                        alt="Current logo"
+                        className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md mb-2"
+                      />
+                    )}
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp,.svg,image/jpeg,image/png,image/webp,image/svg+xml"
+                      onChange={(e) =>
+                        setRoasteryLogoFile(e.target.files?.[0] ?? null)
+                      }
+                      className="block text-sm text-espresso/80 file:mr-3 file:rounded-full file:border-0 file:bg-espresso file:text-cream file:px-4 file:py-1.5 file:text-xs file:font-semibold file:cursor-pointer hover:file:bg-gold"
+                    />
+                  </label>
+
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={savingRoastery}
+                      className="rounded-full bg-espresso text-cream px-5 py-2.5 text-sm font-semibold tracking-wide hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {savingRoastery
+                        ? 'Saving…'
+                        : editingRoasteryId
+                        ? 'Save changes'
+                        : 'Add roastery'}
+                    </button>
+                    {editingRoasteryId && (
+                      <button
+                        type="button"
+                        onClick={resetRoasteryForm}
+                        className="rounded-full border border-oatmeal px-5 py-2.5 text-sm font-semibold text-espresso hover:bg-cream/60 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+
+              <div className="bg-white/70 border border-oatmeal rounded-card shadow-card overflow-hidden">
+                {roasteries.length === 0 ? (
+                  <p className="p-5 text-sm text-espresso/55 italic">
+                    No roasteries yet.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-oatmeal">
+                    {roasteries.map((r) => (
+                      <li
+                        key={r.id}
+                        className="flex items-center justify-between gap-3 p-4 sm:p-5"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {r.logo_url ? (
+                            <img
+                              src={r.logo_url}
+                              alt=""
+                              className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                              style={{ outline: `2px solid ${r.color || '#3D2B1F'}` }}
+                            />
+                          ) : (
+                            <div
+                              className="w-12 h-12 rounded-full"
+                              style={{ backgroundColor: r.color || '#E8E0D5' }}
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-espresso truncate">
+                              {r.name}
+                            </p>
+                            <p className="text-xs text-espresso/55 tabular-nums">
+                              {r.color}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => startEditRoastery(r)}
+                            className="rounded-full border border-oatmeal px-3 py-1.5 text-xs font-semibold text-espresso hover:bg-cream/60 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRoastery(r)}
+                            className="rounded-full border border-red-200 text-red-700 px-3 py-1.5 text-xs font-semibold hover:bg-red-50 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
             </section>

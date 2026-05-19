@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
-import { addBeanSuggestion, getUserBeanSuggestions } from '../api.js'
+import {
+  addBeanSuggestion,
+  getRoasteries,
+  getUserBeanSuggestions,
+} from '../api.js'
 import { supabase } from '../supabaseClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useLanguage } from '../context/LanguageContext.jsx'
@@ -17,6 +21,7 @@ const emptyForm = () => ({
   processing: '',
   roastLevel: 'Light',
   description: '',
+  roasteryId: '',
   brew: {
     waterTemp: '',
     totalTime: '',
@@ -45,6 +50,21 @@ export default function SuggestBean() {
   const [error, setError] = useState('')
 
   const [mine, setMine] = useState([])
+  const [roasteries, setRoasteries] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    getRoasteries()
+      .then((rows) => {
+        if (!cancelled && Array.isArray(rows)) setRoasteries(rows)
+      })
+      .catch(() => {
+        /* silent */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const refreshMine = async () => {
     if (!user) return
@@ -135,6 +155,7 @@ export default function SuggestBean() {
         roastLevel: form.roastLevel,
         description: form.description.trim(),
         imageUrl,
+        roastery_id: form.roasteryId || null,
         brew: includeRecipe
           ? {
               waterTemp: form.brew.waterTemp.trim(),
@@ -234,6 +255,23 @@ export default function SuggestBean() {
                   {ROAST_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="block text-[11px] uppercase tracking-[0.16em] text-espresso/60 font-semibold mb-1">
+                  {t.roastery}
+                </span>
+                <select
+                  value={form.roasteryId}
+                  onChange={(e) => updateField('roasteryId', e.target.value)}
+                  className="w-full rounded-card border border-oatmeal bg-cream/60 px-3 py-2 text-espresso focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition"
+                >
+                  <option value="">{t.noRoastery}</option>
+                  {roasteries.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
                     </option>
                   ))}
                 </select>

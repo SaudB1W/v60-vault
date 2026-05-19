@@ -13,6 +13,21 @@ const roastStyles = {
   Dark: 'bg-espresso text-cream border-espresso',
 }
 
+function hexToRgba(hex, alpha = 0.12) {
+  if (!hex || typeof hex !== 'string') return null
+  const clean = hex.replace('#', '').trim()
+  if (clean.length !== 6 && clean.length !== 3) return null
+  const full =
+    clean.length === 3
+      ? clean.split('').map((c) => c + c).join('')
+      : clean
+  const r = parseInt(full.slice(0, 2), 16)
+  const g = parseInt(full.slice(2, 4), 16)
+  const b = parseInt(full.slice(4, 6), 16)
+  if ([r, g, b].some((n) => Number.isNaN(n))) return null
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
 export default function BeanCard({ bean }) {
   const { language } = useLanguage()
   const t = uiStrings[language]
@@ -55,10 +70,15 @@ export default function BeanCard({ bean }) {
     }
   }, [bean.id])
 
+  const roastery = bean.roastery ?? null
+  const tint = roastery ? hexToRgba(roastery.color, 0.12) : null
+  const tintStyle = tint ? { backgroundColor: tint } : undefined
+
   return (
     <Link
       to={`/bean/${bean.id}`}
       className="bean-card group block bg-white/70 backdrop-blur-sm border border-oatmeal rounded-card shadow-card hover:shadow-cardHover overflow-hidden relative"
+      style={tintStyle}
     >
       <div className="p-5 sm:p-6 flex flex-col h-full">
         {bean.roastery_logo_url && (
@@ -89,6 +109,24 @@ export default function BeanCard({ bean }) {
         <h2 className={`font-display text-2xl sm:text-[1.6rem] leading-tight text-espresso mb-2 ${translating ? 'opacity-60' : ''}`}>
           {displayBean.name}
         </h2>
+
+        {roastery && (
+          <Link
+            to={`/roastery/${roastery.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-espresso bg-white/80 px-2 py-1 mb-2 border rounded-sm hover:bg-white transition-colors"
+            style={{ borderColor: roastery.color || '#E8E0D5' }}
+          >
+            {roastery.logo_url && (
+              <img
+                src={roastery.logo_url}
+                alt=""
+                className="w-5 h-5 rounded-full object-cover border border-white"
+              />
+            )}
+            <span>{roastery.name}</span>
+          </Link>
+        )}
 
         {stats && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-espresso/70 mb-2">

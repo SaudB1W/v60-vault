@@ -6,6 +6,7 @@ import SignupPage from './pages/SignupPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
 import MySuggestionsPage from './pages/MySuggestionsPage.jsx'
 import MyFavoritesPage from './pages/MyFavoritesPage.jsx'
+import RoasteryPage from './pages/RoasteryPage.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import { useLanguage } from './context/LanguageContext.jsx'
 import { useAuth } from './context/AuthContext.jsx'
@@ -79,6 +80,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <MyFavoritesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/roastery/:id"
+          element={
+            <ProtectedRoute>
+              <RoasteryPage />
             </ProtectedRoute>
           }
         />

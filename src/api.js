@@ -137,15 +137,21 @@ export const getBeansByRoastery = async (roasteryId) => {
 }
 
 export const addBean = async (bean) => {
-  const { error } = await supabase.from('beans').insert(beanToDb(bean))
+  const dbPayload = beanToDb(bean)
+  // eslint-disable-next-line no-console
+  console.log('[api] addBean dbPayload:', dbPayload)
+  const { error } = await supabase.from('beans').insert(dbPayload)
   if (error) throw error
   return bean
 }
 
 export const updateBean = async (id, bean) => {
+  const dbPayload = beanToDb(bean)
+  // eslint-disable-next-line no-console
+  console.log('[api] updateBean dbPayload:', { id, dbPayload })
   const { error } = await supabase
     .from('beans')
-    .update(beanToDb(bean))
+    .update(dbPayload)
     .eq('id', id)
   if (error) throw error
   return { ...bean, id }

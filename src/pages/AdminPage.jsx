@@ -298,6 +298,12 @@ export default function AdminPage() {
         pours_ar,
       }
 
+      // eslint-disable-next-line no-console
+      console.log('[admin] bean payload before save:', {
+        editingId,
+        roasteryId: form.roasteryId,
+        payload,
+      })
       if (editingId) {
         await updateBean(editingId, payload)
       } else {

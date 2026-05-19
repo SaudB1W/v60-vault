@@ -94,7 +94,11 @@ const stripNonBeanColumns = (b) => {
   } = b
   return rest
 }
-const beanToDb = (b) => renameKeys(stripNonBeanColumns(b), BEAN_TO_DB)
+const beanToDb = (b) => {
+  const out = renameKeys(stripNonBeanColumns(b), BEAN_TO_DB)
+  if (b) out.roastery_id = b.roasteryId ?? b.roastery_id ?? null
+  return out
+}
 const beanFromDb = (r) => renameKeys(r, BEAN_FROM_DB)
 const ratingToDb = (r) => renameKeys(r, RATING_TO_DB)
 const ratingFromDb = (r) => renameKeys(r, RATING_FROM_DB)
@@ -138,6 +142,7 @@ export const getBeansByRoastery = async (roasteryId) => {
 
 export const addBean = async (bean) => {
   const dbPayload = beanToDb(bean)
+  dbPayload.roastery_id = bean.roasteryId ?? bean.roastery_id ?? null
   // eslint-disable-next-line no-console
   console.log('[api] addBean dbPayload:', dbPayload)
   const { error } = await supabase.from('beans').insert(dbPayload)
@@ -147,6 +152,7 @@ export const addBean = async (bean) => {
 
 export const updateBean = async (id, bean) => {
   const dbPayload = beanToDb(bean)
+  dbPayload.roastery_id = bean.roasteryId ?? bean.roastery_id ?? null
   // eslint-disable-next-line no-console
   console.log('[api] updateBean dbPayload:', { id, dbPayload })
   const { error } = await supabase

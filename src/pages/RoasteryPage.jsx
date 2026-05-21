@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getBeansByRoastery, getRoastery } from '../api.js'
 import { useLanguage } from '../context/LanguageContext.jsx'
@@ -14,6 +14,18 @@ export default function RoasteryPage() {
   const [beans, setBeans] = useState([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [search, setSearch] = useState('')
+
+  const filteredBeans = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return beans
+    return beans.filter((b) => {
+      const name = (b.name || '').toLowerCase()
+      const variety = (b.variety || '').toLowerCase()
+      const roast = (b.roastLevel || '').toLowerCase()
+      return name.includes(q) || variety.includes(q) || roast.includes(q)
+    })
+  }, [beans, search])
 
   useEffect(() => {
     let cancelled = false
@@ -112,11 +124,41 @@ export default function RoasteryPage() {
         ) : beans.length === 0 ? (
           <p className="text-espresso/60 italic">No beans from this roastery yet.</p>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {beans.map((bean) => (
-              <BeanCard key={bean.id} bean={bean} />
-            ))}
-          </div>
+          <>
+            <div className="mb-5 sm:mb-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t.searchRoasteryBeans}
+                  className="w-full rounded-card border border-oatmeal bg-white/70 px-4 py-2.5 pr-10 text-espresso placeholder:text-espresso/40 focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    aria-label="Clear search"
+                    className="absolute top-1/2 -translate-y-1/2 right-2 w-7 h-7 rounded-full text-espresso/60 hover:bg-cream/80 hover:text-espresso flex items-center justify-center"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              <p className="mt-3 text-sm text-espresso/55 tabular-nums">
+                {filteredBeans.length === 0
+                  ? t.noResults
+                  : t.showingRoasteryResults(filteredBeans.length, beans.length)}
+              </p>
+            </div>
+            {filteredBeans.length > 0 && (
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {filteredBeans.map((bean) => (
+                  <BeanCard key={bean.id} bean={bean} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

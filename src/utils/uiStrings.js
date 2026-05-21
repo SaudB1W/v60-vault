@@ -82,6 +82,8 @@ export const uiStrings = {
     signInToComment: 'Sign in to leave a comment',
     signInToRate: 'Sign in to rate this bean',
     signInToFavorite: 'Sign in to save favorites',
+    searchRoasteryBeans: 'Search beans in this roastery...',
+    showingRoasteryResults: (x, y) => `Showing ${x} of ${y} beans`,
   },
   ar: {
     viewRecipe: 'عرض الوصفة',
@@ -165,5 +167,7 @@ export const uiStrings = {
     signInToComment: 'سجل دخولك لترك تعليق',
     signInToRate: 'سجل دخولك لتقييم هذه الحبة',
     signInToFavorite: 'سجل دخولك لحفظ المفضلة',
+    searchRoasteryBeans: 'ابحث عن حبة في هذه المحمصة...',
+    showingRoasteryResults: (x, y) => `عرض ${x} من ${y} حبة`,
   },
 }

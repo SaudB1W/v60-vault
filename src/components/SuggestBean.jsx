@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   addBeanSuggestion,
   getRoasteries,
@@ -38,6 +39,7 @@ const statusPillClass = (status) => {
 
 export default function SuggestBean() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { language } = useLanguage()
   const t = uiStrings[language]
 
@@ -81,7 +83,7 @@ export default function SuggestBean() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
-  if (!user || user.role === 'admin') return null
+  if (user?.role === 'admin') return null
 
   const updateField = (key, value) =>
     setForm((f) => ({ ...f, [key]: value }))
@@ -120,6 +122,10 @@ export default function SuggestBean() {
 
   const submit = async (e) => {
     e.preventDefault()
+    if (!user) {
+      navigate('/signup')
+      return
+    }
     setError('')
     setSuccess(false)
 

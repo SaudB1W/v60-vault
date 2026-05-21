@@ -179,48 +179,66 @@ export default function LandingPage() {
               </span>
             </div>
 
-            {user && (
-              <div className="flex items-center gap-3 sm:gap-4 text-sm">
+            <div className="flex items-center gap-3 sm:gap-4 text-sm">
+              {user && (
                 <span className="text-espresso/70 hidden sm:inline">
                   Hello, <strong className="text-espresso">{user.name}</strong>
                 </span>
-                {user.role === 'admin' ? (
+              )}
+              {user && user.role === 'admin' && (
+                <Link
+                  to="/admin"
+                  className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
+                >
+                  {t.adminPanel}
+                </Link>
+              )}
+              {user && user.role !== 'admin' && (
+                <>
                   <Link
-                    to="/admin"
+                    to="/my-favorites"
                     className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
                   >
-                    {t.adminPanel}
+                    {t.myFavorites}
                   </Link>
-                ) : (
-                  <>
-                    <Link
-                      to="/my-favorites"
-                      className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
-                    >
-                      {t.myFavorites}
-                    </Link>
-                    <Link
-                      to="/my-suggestions"
-                      className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
-                    >
-                      {t.mySuggestions}
-                    </Link>
-                  </>
-                )}
-                <button
-                  onClick={toggleLanguage}
-                  className="rounded-full border border-oatmeal px-3 py-1.5 text-xs font-semibold text-espresso hover:bg-cream/60 transition-colors"
-                >
-                  {language === 'en' ? 'العربية' : 'English'}
-                </button>
+                  <Link
+                    to="/my-suggestions"
+                    className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
+                  >
+                    {t.mySuggestions}
+                  </Link>
+                </>
+              )}
+              <button
+                onClick={toggleLanguage}
+                className="rounded-full border border-oatmeal px-3 py-1.5 text-xs font-semibold text-espresso hover:bg-cream/60 transition-colors"
+              >
+                {language === 'en' ? 'العربية' : 'English'}
+              </button>
+              {user ? (
                 <button
                   onClick={logout}
                   className="rounded-full border border-oatmeal px-3 py-1.5 text-xs font-semibold text-espresso hover:bg-cream/60 transition-colors"
                 >
                   {t.logout}
                 </button>
-              </div>
-            )}
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="rounded-full border border-oatmeal px-3 py-1.5 text-xs font-semibold text-espresso hover:bg-cream/60 transition-colors"
+                  >
+                    {t.signIn}
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="rounded-full bg-espresso text-cream px-3 py-1.5 text-xs font-semibold hover:bg-gold transition-colors"
+                  >
+                    {t.signUp}
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
 
           <div

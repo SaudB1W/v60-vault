@@ -79,6 +79,9 @@ export const uiStrings = {
     manageRoasteries: 'Manage Roasteries',
     addRoastery: 'Add New Roastery',
     beanCount: (n) => `${n} beans`,
+    signInToComment: 'Sign in to leave a comment',
+    signInToRate: 'Sign in to rate this bean',
+    signInToFavorite: 'Sign in to save favorites',
   },
   ar: {
     viewRecipe: 'عرض الوصفة',
@@ -159,5 +162,8 @@ export const uiStrings = {
     manageRoasteries: 'إدارة المحامص',
     addRoastery: 'إضافة محمصة جديدة',
     beanCount: (n) => `${n} حبوب`,
+    signInToComment: 'سجل دخولك لترك تعليق',
+    signInToRate: 'سجل دخولك لتقييم هذه الحبة',
+    signInToFavorite: 'سجل دخولك لحفظ المفضلة',
   },
 }

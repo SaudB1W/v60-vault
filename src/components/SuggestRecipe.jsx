@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { addSuggestion, getSuggestions } from '../api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useLanguage } from '../context/LanguageContext.jsx'
@@ -21,6 +22,7 @@ const statusPillClass = (status) => {
 
 export default function SuggestRecipe({ beanId }) {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { language } = useLanguage()
   const t = uiStrings[language]
 
@@ -50,7 +52,7 @@ export default function SuggestRecipe({ beanId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [beanId, user?.id])
 
-  if (!user || user.role === 'admin') return null
+  if (user?.role === 'admin') return null
 
   const updatePour = (i, key, value) =>
     setForm((f) => {
@@ -71,6 +73,10 @@ export default function SuggestRecipe({ beanId }) {
 
   const submit = async (e) => {
     e.preventDefault()
+    if (!user) {
+      navigate('/signup')
+      return
+    }
     setSubmitting(true)
     setError('')
     setSuccess(false)

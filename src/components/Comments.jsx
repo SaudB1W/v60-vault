@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { addComment, deleteComment, getComments } from '../api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useLanguage } from '../context/LanguageContext.jsx'
@@ -82,31 +83,40 @@ export default function Comments({ beanId }) {
 
   return (
     <div>
-      <form onSubmit={submit} className="space-y-3">
-        <label htmlFor="comment" className="sr-only">
-          {t.addComment}
-        </label>
-        <textarea
-          id="comment"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          rows={3}
-          placeholder="Share your tweak — grind size, swirl pattern, what you tasted…"
-          className="w-full resize-y rounded-card border border-oatmeal bg-cream/60 px-4 py-3 text-espresso placeholder:text-espresso/40 focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition"
-        />
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-espresso/50">
-            {user ? `Posting as ${user.name}.` : 'Sign in to post.'}
-          </p>
-          <button
-            type="submit"
-            disabled={!draft.trim() || !user || posting}
-            className="inline-flex items-center gap-2 rounded-full bg-espresso text-cream px-5 py-2 text-sm font-semibold tracking-wide hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            {posting ? '…' : t.submitComment}
-          </button>
-        </div>
-      </form>
+      {user ? (
+        <form onSubmit={submit} className="space-y-3">
+          <label htmlFor="comment" className="sr-only">
+            {t.addComment}
+          </label>
+          <textarea
+            id="comment"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={3}
+            placeholder="Share your tweak — grind size, swirl pattern, what you tasted…"
+            className="w-full resize-y rounded-card border border-oatmeal bg-cream/60 px-4 py-3 text-espresso placeholder:text-espresso/40 focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition"
+          />
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-espresso/50">
+              Posting as {user.name}.
+            </p>
+            <button
+              type="submit"
+              disabled={!draft.trim() || posting}
+              className="inline-flex items-center gap-2 rounded-full bg-espresso text-cream px-5 py-2 text-sm font-semibold tracking-wide hover:bg-gold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {posting ? '…' : t.submitComment}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <Link
+          to="/signup"
+          className="inline-block text-sm font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
+        >
+          {t.signInToComment} →
+        </Link>
+      )}
 
       {error && (
         <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-card px-3 py-2">

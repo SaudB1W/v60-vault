@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { addRating, getRatings, updateRating } from '../api.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useLanguage } from '../context/LanguageContext.jsx'
+import { uiStrings } from '../utils/uiStrings.js'
 
 export default function StarRating({ beanId }) {
   const { user } = useAuth()
+  const { language } = useLanguage()
+  const t = uiStrings[language]
   const [rating, setRating] = useState(0)
   const [ratingId, setRatingId] = useState(null)
   const [allRatings, setAllRatings] = useState([])
@@ -84,6 +89,24 @@ export default function StarRating({ beanId }) {
     count === 0
       ? 0
       : allRatings.reduce((sum, r) => sum + (Number(r.stars) || 0), 0) / count
+
+  if (!user) {
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-espresso/55 tabular-nums">
+          {count === 0
+            ? 'No ratings yet.'
+            : `Average ${average.toFixed(1)} / 5 across ${count} rating${count === 1 ? '' : 's'}.`}
+        </p>
+        <Link
+          to="/signup"
+          className="inline-block text-sm font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
+        >
+          {t.signInToRate} →
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3">

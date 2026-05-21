@@ -43,22 +43,9 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <LandingPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/bean/:id"
-          element={
-            <ProtectedRoute>
-              <BeanDetailPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/bean/:id" element={<BeanDetailPage />} />
+        <Route path="/roastery/:id" element={<RoasteryPage />} />
         <Route
           path="/admin"
           element={
@@ -70,7 +57,7 @@ export default function App() {
         <Route
           path="/my-suggestions"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute loggedInOnly>
               <MySuggestionsPage />
             </ProtectedRoute>
           }
@@ -78,27 +65,12 @@ export default function App() {
         <Route
           path="/my-favorites"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute loggedInOnly>
               <MyFavoritesPage />
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/roastery/:id"
-          element={
-            <ProtectedRoute>
-              <RoasteryPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="*"
-          element={
-            <ProtectedRoute>
-              <LandingPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="*" element={<LandingPage />} />
       </Routes>
     </div>
   )

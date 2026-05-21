@@ -84,6 +84,10 @@ export const uiStrings = {
     signInToFavorite: 'Sign in to save favorites',
     searchRoasteryBeans: 'Search beans in this roastery...',
     showingRoasteryResults: (x, y) => `Showing ${x} of ${y} beans`,
+    share: 'Share',
+    copyLink: 'Copy Link',
+    shareOnWhatsApp: 'Share on WhatsApp',
+    copied: 'Copied!',
   },
   ar: {
     viewRecipe: 'عرض الوصفة',
@@ -169,5 +173,9 @@ export const uiStrings = {
     signInToFavorite: 'سجل دخولك لحفظ المفضلة',
     searchRoasteryBeans: 'ابحث عن حبة في هذه المحمصة...',
     showingRoasteryResults: (x, y) => `عرض ${x} من ${y} حبة`,
+    share: 'مشاركة',
+    copyLink: 'نسخ الرابط',
+    shareOnWhatsApp: 'مشاركة على واتساب',
+    copied: 'تم النسخ!',
   },
 }

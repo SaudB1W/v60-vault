@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { beans } from '../data/beans.js'
 import { addFavorite, getBean, getFavorites, removeFavorite } from '../api.js'
@@ -46,6 +46,45 @@ export default function BeanDetailPage() {
   const [translating, setTranslating] = useState(false)
   const [liked, setLiked] = useState(false)
   const [favToggling, setFavToggling] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const shareRef = useRef(null)
+
+  useEffect(() => {
+    if (!shareOpen) return
+    const handleClickOutside = (event) => {
+      if (shareRef.current && !shareRef.current.contains(event.target)) {
+        setShareOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [shareOpen])
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* clipboard unavailable — silent fallback */
+    }
+  }
+
+  const handleShareWhatsApp = () => {
+    const beanName = (displayBean ?? bean)?.name ?? ''
+    const message = `Check out this coffee bean: ${beanName} on V60 Vault! ${window.location.href}`
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(message)}`,
+      '_blank',
+      'noopener,noreferrer',
+    )
+    setShareOpen(false)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -181,9 +220,48 @@ export default function BeanDetailPage() {
               <span>{(displayBean ?? bean).variety}</span>
             </div>
 
-            <h1 className={`font-display text-4xl sm:text-6xl text-espresso leading-[1.05] ${translating ? 'opacity-60' : ''}`}>
-              {(displayBean ?? bean).name}
-            </h1>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h1 className={`font-display text-4xl sm:text-6xl text-espresso leading-[1.05] ${translating ? 'opacity-60' : ''}`}>
+                {(displayBean ?? bean).name}
+              </h1>
+              <div className="relative" ref={shareRef}>
+                <button
+                  type="button"
+                  onClick={() => setShareOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={shareOpen}
+                  className="inline-flex items-center gap-2 rounded-full border border-oatmeal bg-white/70 px-4 py-2 text-sm font-semibold text-espresso hover:bg-cream/60 transition-colors"
+                >
+                  <span aria-hidden="true">📤</span>
+                  {t.share}
+                </button>
+                {shareOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 mt-2 w-56 bg-white border border-oatmeal rounded-card shadow-card overflow-hidden z-20"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={handleCopyLink}
+                      className="w-full text-start flex items-center gap-2 px-4 py-2.5 text-sm text-espresso hover:bg-cream/60 transition-colors"
+                    >
+                      <span aria-hidden="true">📋</span>
+                      {copied ? t.copied : t.copyLink}
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={handleShareWhatsApp}
+                      className="w-full text-start flex items-center gap-2 px-4 py-2.5 text-sm text-espresso hover:bg-cream/60 transition-colors border-t border-oatmeal"
+                    >
+                      <span aria-hidden="true">💬</span>
+                      {t.shareOnWhatsApp}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {bean.roastery && (
               <Link

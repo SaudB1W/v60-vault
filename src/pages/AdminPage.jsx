@@ -102,6 +102,107 @@ export default function AdminPage() {
   const [editingRoasteryId, setEditingRoasteryId] = useState(null)
   const [currentRoasteryLogoUrl, setCurrentRoasteryLogoUrl] = useState(null)
   const [savingRoastery, setSavingRoastery] = useState(false)
+
+  const [stats, setStats] = useState(null)
+  const [recentActivity, setRecentActivity] = useState([])
+  const [dashboardLoading, setDashboardLoading] = useState(true)
+  const [dashboardErr, setDashboardErr] = useState('')
+
+  const loadDashboard = async () => {
+    setDashboardLoading(true)
+    setDashboardErr('')
+    try {
+      const headCount = (table, filter) => {
+        let q = supabase.from(table).select('*', { count: 'exact', head: true })
+        if (filter) q = q.eq(filter.col, filter.val)
+        return q
+      }
+      const recent = (table, limit) =>
+        supabase
+          .from(table)
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(limit)
+
+      const [
+        beansRes,
+        usersRes,
+        commentsRes,
+        ratingsRes,
+        favoritesRes,
+        pendingRecipeRes,
+        pendingBeanRes,
+        roasteriesRes,
+        recentComments,
+        recentRecipeSuggestions,
+        recentBeanSuggestions,
+      ] = await Promise.all([
+        headCount('beans'),
+        headCount('profiles'),
+        headCount('comments'),
+        headCount('ratings'),
+        headCount('favorites'),
+        headCount('suggestions', { col: 'status', val: 'pending' }),
+        headCount('bean_suggestions', { col: 'status', val: 'pending' }),
+        headCount('roasteries'),
+        recent('comments', 5),
+        recent('suggestions', 5),
+        recent('bean_suggestions', 5),
+      ])
+
+      setStats({
+        beans: beansRes.count ?? 0,
+        users: usersRes.count ?? 0,
+        comments: commentsRes.count ?? 0,
+        ratings: ratingsRes.count ?? 0,
+        favorites: favoritesRes.count ?? 0,
+        pendingRecipeSuggestions: pendingRecipeRes.count ?? 0,
+        pendingBeanSuggestions: pendingBeanRes.count ?? 0,
+        roasteries: roasteriesRes.count ?? 0,
+      })
+
+      const activity = []
+      ;(recentComments.data ?? []).forEach((c) =>
+        activity.push({
+          type: 'comment',
+          userName: c.user_name,
+          beanId: c.bean_id,
+          beanLabel: null,
+          createdAt: c.created_at,
+        }),
+      )
+      ;(recentRecipeSuggestions.data ?? []).forEach((s) =>
+        activity.push({
+          type: 'recipe',
+          userName: s.user_name,
+          beanId: s.bean_id,
+          beanLabel: null,
+          createdAt: s.created_at,
+        }),
+      )
+      ;(recentBeanSuggestions.data ?? []).forEach((s) =>
+        activity.push({
+          type: 'bean',
+          userName: s.user_name,
+          beanId: null,
+          beanLabel: s.name,
+          createdAt: s.created_at,
+        }),
+      )
+      activity.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+      )
+      setRecentActivity(activity.slice(0, 10))
+    } catch (e) {
+      setDashboardErr(e.message || 'Could not load dashboard.')
+    } finally {
+      setDashboardLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadDashboard()
+  }, [])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
 
@@ -580,6 +681,112 @@ export default function AdminPage() {
             {err}
           </p>
         )}
+
+        {/* Dashboard */}
+        <section>
+          <div className="mb-5 flex items-end justify-between gap-3">
+            <SectionHeader subtitle="A snapshot of the vault.">
+              Dashboard
+            </SectionHeader>
+            <button
+              type="button"
+              onClick={loadDashboard}
+              disabled={dashboardLoading}
+              className="rounded-full border border-oatmeal px-4 py-1.5 text-xs font-semibold text-espresso hover:bg-cream/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {dashboardLoading ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
+
+          {dashboardErr && (
+            <p className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-card px-4 py-3">
+              {dashboardErr}
+            </p>
+          )}
+
+          {dashboardLoading && !stats ? (
+            <p className="text-espresso/60">Loading dashboard…</p>
+          ) : stats ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                <StatCard icon="☕" value={stats.beans} label="Total Beans" />
+                <StatCard icon="👤" value={stats.users} label="Total Users" />
+                <StatCard icon="💬" value={stats.comments} label="Total Comments" />
+                <StatCard icon="⭐" value={stats.ratings} label="Total Ratings" />
+                <StatCard icon="❤️" value={stats.favorites} label="Total Favorites" />
+                <StatCard
+                  icon="📝"
+                  value={stats.pendingRecipeSuggestions}
+                  label="Pending Recipe Suggestions"
+                />
+                <StatCard
+                  icon="🌱"
+                  value={stats.pendingBeanSuggestions}
+                  label="Pending Bean Suggestions"
+                />
+                <StatCard icon="🏪" value={stats.roasteries} label="Total Roasteries" />
+              </div>
+
+              <div className="mt-6 bg-white/70 border border-oatmeal rounded-card shadow-card overflow-hidden">
+                <div className="p-4 sm:p-5 border-b border-oatmeal">
+                  <h3 className="font-display text-lg text-espresso">
+                    Recent Activity
+                  </h3>
+                </div>
+                {recentActivity.length === 0 ? (
+                  <p className="p-5 text-sm text-espresso/55 italic">
+                    No recent activity.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-oatmeal">
+                    {recentActivity.map((a, i) => {
+                      const bean = a.beanId
+                        ? beanById.get(String(a.beanId))
+                        : null
+                      const beanLabel =
+                        bean?.name ?? a.beanLabel ?? a.beanId ?? '—'
+                      const typeLabel =
+                        a.type === 'comment'
+                          ? '💬 Comment'
+                          : a.type === 'recipe'
+                          ? '📝 Recipe suggestion'
+                          : '🌱 Bean suggestion'
+                      return (
+                        <li
+                          key={i}
+                          className="p-4 sm:p-5 flex items-center justify-between gap-3 flex-wrap"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs uppercase tracking-[0.18em] text-espresso/55 font-semibold">
+                              {typeLabel}
+                            </p>
+                            <p className="text-sm text-espresso mt-1 truncate">
+                              <strong>{a.userName || 'Unknown'}</strong>
+                              <span className="text-espresso/30 mx-1.5">·</span>
+                              {beanLabel}
+                            </p>
+                          </div>
+                          <time
+                            dateTime={a.createdAt}
+                            className="text-xs text-espresso/55 tabular-nums"
+                          >
+                            {new Date(a.createdAt).toLocaleString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </time>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+            </>
+          ) : null}
+        </section>
 
         {loading ? (
           <p className="text-espresso/60">Loading…</p>
@@ -1331,6 +1538,20 @@ export default function AdminPage() {
           </>
         )}
       </main>
+    </div>
+  )
+}
+
+function StatCard({ icon, value, label }) {
+  return (
+    <div className="bg-white/70 border border-oatmeal rounded-card shadow-card p-4 sm:p-5">
+      <div className="text-2xl" aria-hidden="true">{icon}</div>
+      <div className="mt-2 font-display text-3xl sm:text-4xl text-espresso leading-none tabular-nums">
+        {value}
+      </div>
+      <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-espresso/60 font-semibold">
+        {label}
+      </p>
     </div>
   )
 }

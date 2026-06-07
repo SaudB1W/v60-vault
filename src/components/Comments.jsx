@@ -141,9 +141,18 @@ export default function Comments({ beanId }) {
             <p className="text-espresso whitespace-pre-wrap">{c.text}</p>
             <div className="mt-2 flex items-center justify-between text-xs text-espresso/55">
               <span>
-                <span className="font-semibold text-espresso/80">
-                  {c.userName || 'Anonymous'}
-                </span>
+                {c.userId ? (
+                  <Link
+                    to={`/profile/${c.userId}`}
+                    className="font-semibold text-espresso/80 hover:text-espresso underline-offset-2 hover:underline"
+                  >
+                    {c.userName || 'Anonymous'}
+                  </Link>
+                ) : (
+                  <span className="font-semibold text-espresso/80">
+                    {c.userName || 'Anonymous'}
+                  </span>
+                )}
                 <span className="text-espresso/30 mx-1.5">·</span>
                 <time dateTime={c.createdAt}>
                   {formatTimestamp(c.createdAt)}

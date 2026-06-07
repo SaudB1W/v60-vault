@@ -425,6 +425,44 @@ export const deleteRoastery = async (id) =>
 export const getUsers = async () =>
   unwrap(await supabase.from('profiles').select('*'))
 
+export const getProfile = async (id) =>
+  unwrap(
+    await supabase.from('profiles').select('*').eq('id', id).maybeSingle(),
+  )
+
+export const updateProfile = async (id, updates) => {
+  const { error } = await supabase.from('profiles').update(updates).eq('id', id)
+  if (error) throw error
+  return { id, ...updates }
+}
+
+export const getUserRatings = async (userId) => {
+  const rows = unwrap(
+    await supabase
+      .from('ratings')
+      .select('*, beans(name)')
+      .eq('user_id', userId),
+  )
+  return rows.map((r) => ({
+    ...ratingFromDb(r),
+    beanName: r.beans?.name ?? null,
+  }))
+}
+
+export const getUserComments = async (userId) => {
+  const rows = unwrap(
+    await supabase
+      .from('comments')
+      .select('*, beans(name)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false }),
+  )
+  return rows.map((r) => ({
+    ...commentFromDb(r),
+    beanName: r.beans?.name ?? null,
+  }))
+}
+
 // ---------- Seed (run once on first load if beans table is empty) ----------
 let seedAttempted = false
 export const seedBeansIfEmpty = async () => {

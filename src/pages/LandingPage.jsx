@@ -196,6 +196,12 @@ export default function LandingPage() {
               {user && user.role !== 'admin' && (
                 <>
                   <Link
+                    to={`/profile/${user.id}`}
+                    className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
+                  >
+                    {t.myProfile}
+                  </Link>
+                  <Link
                     to="/my-favorites"
                     className="font-semibold text-espresso hover:text-gold underline-offset-2 hover:underline"
                   >

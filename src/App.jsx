@@ -71,14 +71,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/profile/:id"
-          element={
-            <ProtectedRoute loggedInOnly>
-              <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/profile/:id" element={<ProfilePage />} />
         <Route path="*" element={<LandingPage />} />
       </Routes>
     </div>

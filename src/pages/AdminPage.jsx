@@ -211,6 +211,126 @@ export default function AdminPage() {
   const [savingBean, setSavingBean] = useState(false)
   const [logoFile, setLogoFile] = useState(null)
 
+  const [scanOpen, setScanOpen] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const [scanPreview, setScanPreview] = useState(null)
+  const [scanSuccess, setScanSuccess] = useState(false)
+  const [scanError, setScanError] = useState('')
+  const [scanRaw, setScanRaw] = useState('')
+
+  const parseScanJson = (text) => {
+    if (!text) return null
+    try {
+      return JSON.parse(text)
+    } catch {
+      /* fall through */
+    }
+    const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
+    if (fence) {
+      try {
+        return JSON.parse(fence[1])
+      } catch {
+        /* fall through */
+      }
+    }
+    const brace = text.match(/\{[\s\S]*\}/)
+    if (brace) {
+      try {
+        return JSON.parse(brace[0])
+      } catch {
+        /* fall through */
+      }
+    }
+    return null
+  }
+
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const [, data] = String(reader.result).split(',')
+        resolve({ base64: data, mediaType: file.type || 'image/jpeg' })
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+
+  const runLabelScan = async (file) => {
+    if (!file) return
+    setScanning(true)
+    setScanError('')
+    setScanSuccess(false)
+    setScanRaw('')
+    try {
+      setScanPreview(URL.createObjectURL(file))
+      const { base64, mediaType } = await fileToBase64(file)
+
+      const prompt = `Analyze this coffee bag label image and extract the following information in JSON format only, no other text:
+{
+  name: string (coffee/bean name),
+  origin: string (country of origin),
+  variety: string (coffee variety e.g. Bourbon, Typica, Gesha),
+  elevation: string (elevation/altitude e.g. '1800-2200m'),
+  processing: string (processing method e.g. Washed, Natural, Honey),
+  roastLevel: string (one of: Light, Medium-Light, Medium, Medium-Dark, Dark),
+  description: string (any tasting notes or description found on the bag)
+}
+If a field cannot be found, use an empty string. Return only valid JSON.`
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: mediaType,
+                    data: base64,
+                  },
+                },
+                { type: 'text', text: prompt },
+              ],
+            },
+          ],
+        }),
+      })
+      if (!res.ok) throw new Error(`API error ${res.status}`)
+      const data = await res.json()
+      const text = data?.content?.[0]?.text ?? ''
+      setScanRaw(text)
+      const parsed = parseScanJson(text)
+      if (!parsed) throw new Error('Could not parse response')
+
+      setForm((f) => ({
+        ...f,
+        name: parsed.name || f.name,
+        origin: parsed.origin || f.origin,
+        variety: parsed.variety || f.variety,
+        elevation: parsed.elevation || f.elevation,
+        processing: parsed.processing || f.processing,
+        roastLevel: ROAST_OPTIONS.includes(parsed.roastLevel)
+          ? parsed.roastLevel
+          : f.roastLevel,
+        description: parsed.description || f.description,
+      }))
+      setScanSuccess(true)
+    } catch {
+      setScanError('Could not read the label. Please fill in manually.')
+    } finally {
+      setScanning(false)
+    }
+  }
+
   const refresh = async () => {
     setLoading(true)
     setErr('')
@@ -804,6 +924,94 @@ export default function AdminPage() {
                 </h3>
 
                 <form onSubmit={submitBean} className="space-y-5">
+                  <div className="bg-cream/60 border border-oatmeal rounded-card p-4">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div>
+                        <p className="font-semibold text-espresso">
+                          📷 Scan Coffee Bag Label
+                        </p>
+                        <p className="text-xs text-espresso/60 mt-0.5">
+                          Auto-fill fields from a photo of the bag.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScanOpen((v) => !v)
+                          setScanError('')
+                          setScanSuccess(false)
+                        }}
+                        className="rounded-full border border-oatmeal px-3 py-1.5 text-xs font-semibold text-espresso hover:bg-white/80 transition-colors"
+                      >
+                        {scanOpen ? 'Close' : 'Scan Coffee Bag Label'}
+                      </button>
+                    </div>
+
+                    {scanOpen && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <label className="rounded-full bg-espresso text-cream px-4 py-1.5 text-xs font-semibold cursor-pointer hover:bg-gold transition-colors">
+                          Take Photo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            onChange={(e) =>
+                              runLabelScan(e.target.files?.[0] ?? null)
+                            }
+                          />
+                        </label>
+                        <label className="rounded-full border border-oatmeal px-4 py-1.5 text-xs font-semibold text-espresso cursor-pointer hover:bg-white/80 transition-colors">
+                          Upload Image
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) =>
+                              runLabelScan(e.target.files?.[0] ?? null)
+                            }
+                          />
+                        </label>
+                      </div>
+                    )}
+
+                    {scanPreview && (
+                      <img
+                        src={scanPreview}
+                        alt="Scanned label"
+                        className="mt-3 max-h-40 rounded-card border border-oatmeal object-contain bg-white"
+                      />
+                    )}
+
+                    {scanning && (
+                      <p className="mt-2 text-sm text-espresso/70">
+                        Scanning…
+                      </p>
+                    )}
+
+                    {scanSuccess && (
+                      <p className="mt-2 text-sm text-green-800 bg-green-50 border border-green-200 rounded-card px-3 py-2">
+                        Fields auto-filled from label scan.
+                      </p>
+                    )}
+
+                    {scanError && (
+                      <div className="mt-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-card px-3 py-2 space-y-2">
+                        <p>{scanError}</p>
+                        {scanRaw && (
+                          <details className="text-xs">
+                            <summary className="cursor-pointer">
+                              Raw response
+                            </summary>
+                            <pre className="whitespace-pre-wrap mt-1">
+                              {scanRaw}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field
                       label="Name"

@@ -265,15 +265,15 @@ export default function AdminPage() {
       setScanPreview(URL.createObjectURL(file))
       const { base64, mediaType } = await fileToBase64(file)
 
-      const prompt = `Analyze this coffee bag label image and extract the following information in JSON format only, no other text:
+      const prompt = `Analyze this coffee bag label image and extract the following information in JSON format only, no other text. The label may be in Arabic, English, or any other language — translate everything to English in your response:
 {
   name: string (coffee/bean name),
-  origin: string (country of origin),
+  origin: string (country of origin in English),
   variety: string (coffee variety e.g. Bourbon, Typica, Gesha),
   elevation: string (elevation/altitude e.g. '1800-2200m'),
   processing: string (processing method e.g. Washed, Natural, Honey),
   roastLevel: string (one of: Light, Medium-Light, Medium, Medium-Dark, Dark),
-  description: string (any tasting notes or description found on the bag)
+  description: string (any tasting notes or description found on the bag, translated to English)
 }
 If a field cannot be found, use an empty string. Return only valid JSON.`
 
